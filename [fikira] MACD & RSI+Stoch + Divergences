@@ -1,6 +1,6 @@
 //@version=4
 // This source code is subject to the terms of the Creative Commons Zero v1.0 Universal license
-// https://github.com/fikira12/Fibonacci-Retracement-Pivots.git
+// https://github.com/fikira12/Divergences
 // Copyright (c) 2019 @fikira
 
 study(title="[fikira] MACD & RSI+Stoch + Divergences", shorttitle="MACD & RSI+Stoch + DIV", max_bars_back=1000)
