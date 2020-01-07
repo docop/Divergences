@@ -1,0 +1,1712 @@
+//@version=4
+// This source code is subject to the terms of the Creative Commons Zero v1.0 Universal license
+// https://github.com/fikira12/Fibonacci-Retracement-Pivots.git
+// Copyright (c) 2019 @fikira
+
+study(title="[fikira] MACD & RSI+Stoch + Divergences", shorttitle="MACD & RSI+Stoch + DIV", max_bars_back=1000)
+
+Pick = input(false, title="-<><><><><><>[Pick Your Poison]<><><><><><>-")
+
+choice = input("MACD", options=["MACD", "RSI", "Stoch RSI"], title="Choice Indicator")
+input = input("macd", options=["macd", "signal", "hist"], title="Source Divergences [if MACD]")
+
+ST = input(false, title="-<><><><><><>[Calculation Period]<><><><><><>-")
+
+// Because the script is heavy in calculation it is limited in time
+// (= inspired from a script of "Che_Trader") 
+_Year = input(2019, "Start calculation (Year)")
+_Month = input(1, "Start calculation (Month)")
+_Start = timestamp(_Year, _Month, 1, 1, 1)
+//_Start = timeframe.isintraday ? timestamp(year, month, dayofweek, 0, 0) : timestamp(_Year, _Month, _Day, 0, 0)
+Year_ = input(2099, "Stop calculation (Year)")
+Stop_ = timestamp(Year_, 12, 31, 23, 59)
+Period = time >= _Start and time <= Stop_ ? true : false
+
+col_green = choice == "Stoch RSI" or choice == "RSI" ? color.green : na
+col_red = choice == "Stoch RSI" or choice == "RSI" ?  color.red : na
+col_white = choice == "Stoch RSI" or choice == "RSI" ?  color.white : na
+col_yellow = choice == "Stoch RSI" or choice == "RSI" ?  color.yellow : na
+col_black = choice == "Stoch RSI" or choice == "RSI" ?  color.new(color.black, 100) : na
+
+// RSI
+
+RSI = input(false, title="-<><><><><><>[RSI]<><><><><><>-")
+
+col_yellow_ = choice == "RSI" ? color.yellow : na
+
+src_ = close, len_ = input(14, minval=1, title="RSI Length")
+up = rma(max(change(src_), 0), len_)
+down = rma(-min(change(src_), 0), len_)
+rsi_ = down == 0 ? 100 : up == 0 ? 0 : 100 - (100 / (1 + up / down))
+plot(rsi_, color=col_yellow_, linewidth=1, transp=0, title="RSI Line")
+
+// MACD
+
+MACD = input(false, title="-<><><><><><>[MACD]<><><><><><>-")
+
+fast_length = input(title="MACD Fast Length", type=input.integer, defval=12)
+slow_length = input(title="MACD Slow Length", type=input.integer, defval=26)
+src = input(title="MACD Source", type=input.source, defval=close)
+signal_length = input(title="Signal Smoothing", type=input.integer, minval = 1, maxval = 50, defval = 9)
+sma_source = input(title="SMA(Oscillator) instead of EMA ?", type=input.bool, defval=false)
+sma_signal = input(title="SMA(Signal Line) instead of EMA ?", type=input.bool, defval=false)
+
+// Plot colors
+col_grow_above = choice == "MACD" ? #26A69A : na
+col_grow_below = choice == "MACD" ? #FFCDD2 : na
+col_fall_above =choice == "MACD" ?  #B2DFDB : na
+col_fall_below = choice == "MACD" ? #EF5350 : na
+col_macd = choice == "MACD" ? #0094ff : na
+col_signal = choice == "MACD" ? #ff6a00 : na
+
+// Calculating
+fast_ma = sma_source ? sma(src, fast_length) : ema(src, fast_length)
+slow_ma = sma_source ? sma(src, slow_length) : ema(src, slow_length)
+macd = fast_ma - slow_ma
+signal = sma_signal ? sma(macd, signal_length) : ema(macd, signal_length)
+hist = macd - signal
+
+plot(choice == "MACD" ? hist : na, title="Histogram", style=plot.style_columns, color=(hist>=0 ? (hist[1] < hist ? col_grow_above : col_fall_above) : (hist[1] < hist ? col_grow_below : col_fall_below) ), transp=30 )
+plot(choice == "MACD" ? macd : na, title="MACD", color=col_macd, linewidth=2, transp=0)
+plot(choice == "MACD" ? signal : na, title="Signal", color=col_signal, linewidth=2, transp=0)
+plot(crossunder(macd, signal) and choice == "MACD" ? signal : na, color=col_signal, style = plot.style_cross, linewidth = 2, transp = 0, title="X MACD under signal")
+plot(crossover(macd, signal) and choice == "MACD"  ? signal : na, color=col_macd, style = plot.style_cross, linewidth = 2, transp = 0, title="X MACD over signal")
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//Stoch RSI
+
+Stoch = input(false, title="-<><><><><><>[Stoch RSI]<><><><><><>-")
+
+smoothK = input(3, minval=1)
+smoothD = input(3, minval=1)
+lengthRSI = input(14, minval=1)
+lengthStoch = input(14, minval=1, title="Stoch (RSI) length")
+src2 = input(close, title="RSI Source")
+rsi1 = rsi(src2, lengthRSI)
+k = sma(stoch(rsi1, rsi1, rsi1, lengthStoch), smoothK)
+d = sma(k, smoothD)
+
+pk = plot(choice == "Stoch RSI" ? k : na, transp=50, linewidth=2, color=color.aqua, title="Stoch 'k'")
+pd = plot(choice == "Stoch RSI" ? d : na, transp=50, linewidth=2, color=color.red, title="Stoch 'd'")
+fill(pk, pd, choice == "Stoch RSI" and k > d ? col_green : choice == "Stoch RSI" and k < d ? col_red : na, transp=75, title="BG Over/Undersold RSI")
+
+//plot(rsi1, color=color.yellow, linewidth=1, transp=0, title="RSI Line")
+
+h8 = hline(choice == "Stoch RSI" or choice == "RSI" ? 20 : na, color=col_black, linestyle=hline.style_dotted, title="Extreme Oversold Stoch Rsi")
+h7 = hline(choice == "Stoch RSI" or choice == "RSI" ? 30 : na, color=col_black, linestyle=hline.style_dotted, title="Oversold Stoch Rsi")
+hline(choice == "Stoch RSI" or choice == "RSI" ? 50 : na, color=col_yellow, linestyle=hline.style_dotted, title="Middle line")
+h3 = hline(choice == "Stoch RSI" or choice == "RSI" ? 70 : na, color=col_black, linestyle=hline.style_dotted, title="Overbought Stoch Rsi")
+h2 = hline(choice == "Stoch RSI" or choice == "RSI" ? 80 : na, color=col_black, linestyle=hline.style_dotted, title="Extreme Overbought Stoch Rsi")
+
+fill(h7, h8, choice == "Stoch RSI" or choice == "RSI" ? col_green : na,transp=80, title="BG Color overbought to extreme overbought zone")
+fill(h2, h3, choice == "Stoch RSI" or choice == "RSI" ? col_red : na, transp=80, title="BG Color oversold to extreme oversold zone")
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+DIV = input(false, title="-<><><><><><>[Divergences]<><><><><><>-")
+
+nwh = 
+ choice == "Stoch RSI" or choice == "MACD" and close > open ? close : 
+ choice == "Stoch RSI" or choice == "MACD" and close < open ? open :
+ choice == "RSI" and close > open ? close : na 
+
+nwl = 
+ choice == "Stoch RSI" or choice == "MACD" and close > open ? open : 
+ choice == "Stoch RSI" or choice == "MACD" and close < open ? close :
+ choice == "RSI" and close < open ? close : na 
+
+nwh_ = close > open ? high : close < open ? high : na 
+nwl_ = close > open ? low : close < open ? low : na 
+
+show_div = input(true, title="Show Regular Divergences")
+show_hiddiv = input(true, title="Show Hidden Divergences")
+
+dot = input(title="[Divergences] Line Type", defval="dotted", options=["solid", "dashed", "dotted"]) 
+lw = input(2, minval=0, maxval=10, title="[Divergences] linewidth")
+
+_dot = line.style_dotted
+if dot == "solid"
+    _dot := line.style_solid
+else
+    if dot == "dashed"
+        _dot := line.style_dashed
+    else
+        if dot == "dotted"
+            _dot := line.style_dotted
+
+//solid = input(title="Line Type [Connections]", defval="solid", options=["solid", "dashed", "dotted"]) 
+
+//_solid = line.style_solid
+//if solid == "solid"
+//    _solid := line.style_solid
+//else
+//    if solid == "dashed"
+//        _solid := line.style_dashed
+//    else
+//        if solid == "dotted"
+//            _solid := line.style_dotted
+
+Bars = input(false, title="-<><><><><><>[LeftBars   RightBars]<><><><><><>-")
+
+LB = input(5, title = "LeftBars 'MACD & Stoch'")                      
+RB = input(0, title = "RightBars 'MACD & Stoch'")                    
+LB_ = input(10, title = "LeftBars 'RSI'")                      
+RB_ = input(1, title = "RightBars 'RSI'")
+
+_x = input(false, title="Custom Div Period?")
+x = _x ? input(7, minval=7, title="Custom Div Period:") : na
+
+rsi = 0.0
+if Period and choice == "MACD" and input == "macd"
+    rsi := macd 
+else
+    if Period and choice == "MACD" and input == "signal"
+        rsi := signal
+    else
+        if Period and choice == "MACD" and input == "hist"
+            rsi := hist
+        else
+            if Period and choice == "Stoch RSI"
+                rsi := k
+            else
+                if Period and choice == "RSI" 
+                    rsi := rsi_
+
+
+ph = 
+ Period and choice == "MACD" ? pivothigh(nwh, LB, RB) :
+ Period and choice == "Stoch RSI" ? pivothigh(nwh, LB, RB) :
+ Period and choice == "RSI" ? pivothigh(nwh, LB_, RB_) : na
+_ph = Period ? pivothigh(nwh_, LB_, RB_) : na
+pl = 
+ Period and choice == "MACD" ? pivotlow(nwl, LB, RB) :
+ Period and choice == "Stoch RSI" ? pivotlow(nwl, LB, RB) :
+ Period and choice == "RSI" ? pivotlow(nwl, LB_, RB_) : na
+_pl = Period ? pivothigh(nwl_, LB_, RB_) : na
+rh = 
+ Period and choice == "Stoch RSI" and (k<d) and (k[1]>=d[1]) and (k[2]>=d[2]) ? pivothigh(rsi, LB, RB) : 
+ Period and choice == "MACD" and macd <= macd[1] and macd[1] >= macd[2] ? pivothigh(rsi, LB, RB) : 
+ Period and choice == "RSI" ? pivothigh(rsi, LB_, RB_) : na    
+rl = 
+ Period and choice == "Stoch RSI" and (k>d) and (k[1]<=d[1]) and (k[2]<=d[2]) ? pivotlow(rsi, LB, RB) : 
+ Period and choice == "MACD" and macd >= macd[1] and macd[1] <= macd[2] ? pivotlow(rsi, LB, RB) : 
+ Period and choice == "RSI" ? pivotlow(rsi, LB_, RB_) : na
+
+//plot(rl, color=color.lime, linewidth=2, offset=-1)
+//plot(rh, color=color.red, linewidth=2, offset=-1)
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+rsih0 = Period and choice == "Stoch RSI" or Period and choice == "MACD" ? valuewhen(rh, rsi[1], 0) : na                                        
+rsil0 = Period and choice == "Stoch RSI" or Period and choice == "MACD" ? valuewhen(rl, rsi[1], 0) : na                                         
+hh0 = Period and choice == "Stoch RSI" or Period and choice == "MACD" and rsih0 ? valuewhen(rh, nwh[1], 0) : na
+ll0 = Period and choice == "Stoch RSI" or Period and choice == "MACD" and rsil0 ? valuewhen(rl, nwl[1], 0) : na
+
+rsih1 = Period and choice == "Stoch RSI" or Period and choice == "MACD" ? valuewhen(rh, rsi[1], 1) : na                                       
+rsil1 = Period and choice == "Stoch RSI" or Period and choice == "MACD" ? valuewhen(rl, rsi[1], 1) : na                                         
+hh1 = Period and choice == "Stoch RSI" or Period and choice == "MACD" and rsih1 ? valuewhen(rh, nwh[1], 1) : na
+ll1 = Period and choice == "Stoch RSI" or Period and choice == "MACD" and rsil1 ? valuewhen(rl, nwl[1], 1) : na
+
+rsih2 = Period and choice == "Stoch RSI" or Period and choice == "MACD" ? valuewhen(rh, rsi[1], 2) : na                                       
+rsil2 = Period and choice == "Stoch RSI" or Period and choice == "MACD" ? valuewhen(rl, rsi[1], 2) : na                                         
+hh2 = Period and choice == "Stoch RSI" or Period and choice == "MACD" and rsih2 ? valuewhen(rh, nwh[1], 2) : na
+ll2 = Period and choice == "Stoch RSI" or Period and choice == "MACD" and rsil2 ? valuewhen(rl, nwl[1], 2) : na
+
+rsih3 = Period and choice == "Stoch RSI" or Period and choice == "MACD" ? valuewhen(rh, rsi[1], 3) : na                                       
+rsil3 = Period and choice == "Stoch RSI" or Period and choice == "MACD" ? valuewhen(rl, rsi[1], 3) : na                                         
+hh3 = Period and choice == "Stoch RSI" or Period and choice == "MACD" and rsih3 ? valuewhen(rh, nwh[1], 3) : na
+ll3 = Period and choice == "Stoch RSI" or Period and choice == "MACD" and rsil3 ? valuewhen(rl, nwl[1], 3) : na
+
+rsih4 = Period and choice == "Stoch RSI" or Period and choice == "MACD" ? valuewhen(rh, rsi[1], 4) : na                                       
+rsil4 = Period and choice == "Stoch RSI" or Period and choice == "MACD" ? valuewhen(rl, rsi[1], 4) : na                                         
+hh4 = Period and choice == "Stoch RSI" or Period and choice == "MACD" and rsih4 ? valuewhen(rh, nwh[1], 4) : na
+ll4 = Period and choice == "Stoch RSI" or Period and choice == "MACD" and rsil4 ? valuewhen(rl, nwl[1], 4) : na
+
+rsih5 = Period and choice == "Stoch RSI" or Period and choice == "MACD" ? valuewhen(rh, rsi[1], 5) : na                                       
+rsil5 = Period and choice == "Stoch RSI" or Period and choice == "MACD" ? valuewhen(rl, rsi[1], 5) : na                                         
+hh5 = Period and choice == "Stoch RSI" or Period and choice == "MACD" and rsih5 ? valuewhen(rh, nwh[1], 5) : na
+ll5 = Period and choice == "Stoch RSI" or Period and choice == "MACD" and rsil5 ? valuewhen(rl, nwl[1], 5) : na
+
+rsih6 = Period and choice == "Stoch RSI" or Period and choice == "MACD" ? valuewhen(rh, rsi[1], 6) : na                                       
+rsil6 = Period and choice == "Stoch RSI" or Period and choice == "MACD" ? valuewhen(rl, rsi[1], 6) : na                                         
+hh6 = Period and choice == "Stoch RSI" or Period and choice == "MACD" and rsih6 ? valuewhen(rh, nwh[1], 6) : na
+ll6 = Period and choice == "Stoch RSI" or Period and choice == "MACD" and rsil6 ? valuewhen(rl, nwl[1], 6) : na
+
+rsihx = Period and choice == "Stoch RSI" or Period and choice == "MACD" ? valuewhen(rh, rsi[1], x) : na                                        
+rsilx = Period and choice == "Stoch RSI" or Period and choice == "MACD" ? valuewhen(rl, rsi[1], x) : na                                        
+hhx = Period and choice == "Stoch RSI" or Period and choice == "MACD" and rsihx ? valuewhen(rh, nwh[1], x) : na
+llx = Period and choice == "Stoch RSI" or Period and choice == "MACD" and rsilx ? valuewhen(rl, nwl[1], x) : na
+
+hh0_ = Period and choice == "RSI" ? valuewhen(ph, nwh[1], 0) : na                                       
+ll0_ = Period and choice == "RSI" ? valuewhen(pl, nwl[1], 0) : na                                        
+rsih0_ = Period and choice == "RSI" and hh0_ ? valuewhen(ph, rsi[1], 0) : na
+rsil0_ = Period and choice == "RSI" and ll0_ ? valuewhen(pl, rsi[1], 0) : na
+
+hh1_ = Period and choice == "RSI" and hh0_ ? valuewhen(ph, nwh[1], 1) : na                                       
+ll1_ = Period and choice == "RSI" and ll0_ ? valuewhen(pl, nwl[1], 1) : na   
+_hh1 = Period and choice == "RSI" and hh0_ ? valuewhen(ph, nwh_[1], 1) : na                                       
+_ll1 = Period and choice == "RSI" and ll0_ ? valuewhen(pl, nwl_[1], 1) : na 
+rsih1_ = Period and choice == "RSI" and hh0_ ? valuewhen(ph, rsi[1], 1) : na
+rsil1_ = Period and choice == "RSI" and ll0_ ? valuewhen(pl, rsi[1], 1) : na
+
+hh2_ = Period and choice == "RSI" and hh0_ ? valuewhen(ph, nwh[1], 2) : na                                       
+ll2_ = Period and choice == "RSI" and ll0_ ? valuewhen(pl, nwl[1], 2) : na  
+_hh2 = Period and choice == "RSI" and hh0_ ? valuewhen(ph, nwh_[1], 2) : na                                       
+_ll2 = Period and choice == "RSI" and ll0_ ? valuewhen(pl, nwl_[1], 2) : na 
+rsih2_ = Period and choice == "RSI" and hh0_ ? valuewhen(ph, rsi[1], 2) : na
+rsil2_ = Period and choice == "RSI" and ll0_ ? valuewhen(pl, rsi[1], 2) : na
+
+hh3_ = Period and choice == "RSI" and hh0_ ? valuewhen(ph, nwh[1], 3) : na                                       
+ll3_ = Period and choice == "RSI" and ll0_ ? valuewhen(pl, nwl[1], 3) : na  
+_hh3 = Period and choice == "RSI" and hh0_ ? valuewhen(ph, nwh_[1], 3) : na                                       
+_ll3 = Period and choice == "RSI" and ll0_ ? valuewhen(pl, nwl_[1], 3) : na 
+rsih3_ = Period and choice == "RSI" and hh0_ ? valuewhen(ph, rsi[1], 3) : na
+rsil3_ = Period and choice == "RSI" and ll0_ ? valuewhen(pl, rsi[1], 3) : na
+
+hh4_ = Period and choice == "RSI" and hh0_ ? valuewhen(ph, nwh[1], 4) : na                                       
+ll4_ = Period and choice == "RSI" and ll0_ ? valuewhen(pl, nwl[1], 4) : na   
+_hh4 = Period and choice == "RSI" and hh0_ ? valuewhen(ph, nwh_[1], 4) : na                                       
+_ll4 = Period and choice == "RSI" and ll0_ ? valuewhen(pl, nwl_[1], 4) : na 
+rsih4_ = Period and choice == "RSI" and hh0_ ? valuewhen(ph, rsi[1], 4) : na
+rsil4_ = Period and choice == "RSI" and ll0_ ? valuewhen(pl, rsi[1], 4) : na
+
+hh5_ = Period and choice == "RSI" and hh0_ ? valuewhen(ph, nwh[1], 5) : na                                       
+ll5_ = Period and choice == "RSI" and ll0_ ? valuewhen(pl, nwl[1], 5) : na   
+_hh5 = Period and choice == "RSI" and hh0_ ? valuewhen(ph, nwh_[1], 5) : na                                       
+_ll5 = Period and choice == "RSI" and ll0_ ? valuewhen(pl, nwl_[1], 5) : na 
+rsih5_ = Period and choice == "RSI" and hh0_ ? valuewhen(ph, rsi[1], 5) : na
+rsil5_ = Period and choice == "RSI" and ll0_ ? valuewhen(pl, rsi[1], 5) : na
+
+hh6_ = Period and choice == "RSI" and hh0_ ? valuewhen(ph, nwh[1], 6) : na                                       
+ll6_ = Period and choice == "RSI" and ll0_ ? valuewhen(pl, nwl[1], 6) : na  
+_hh6 = Period and choice == "RSI" and hh0_ ? valuewhen(ph, nwh_[1], 6) : na                                       
+_ll6 = Period and choice == "RSI" and ll0_ ? valuewhen(pl, nwl_[1], 6) : na 
+rsih6_ = Period and choice == "RSI" and hh0_ ? valuewhen(ph, rsi[1], 6) : na
+rsil6_ = Period and choice == "RSI" and ll0_ ? valuewhen(pl, rsi[1], 6) : na
+
+hh7_ = Period and choice == "RSI" and hh0_ ? valuewhen(ph, nwh[1], 7) : na                                       
+ll7_ = Period and choice == "RSI" and ll0_ ? valuewhen(pl, nwl[1], 7) : na  
+_hh7 = Period and choice == "RSI" and hh0_ ? valuewhen(ph, nwh_[1],7) : na                                       
+_ll7 = Period and choice == "RSI" and ll0_ ? valuewhen(pl, nwl_[1], 7) : na 
+rsih7_ = Period and choice == "RSI" and hh0_ ? valuewhen(ph, rsi[1], 7) : na
+rsil7_ = Period and choice == "RSI" and ll0_ ? valuewhen(pl, rsi[1], 7) : na
+
+hh8_ = Period and choice == "RSI" and hh0_ ? valuewhen(ph, nwh[1], 8) : na                                       
+ll8_ = Period and choice == "RSI" and ll0_ ? valuewhen(pl, nwl[1], 8) : na   
+_hh8 = Period and choice == "RSI" and hh0_ ? valuewhen(ph, nwh_[1], 8) : na                                       
+_ll8 = Period and choice == "RSI" and ll0_ ? valuewhen(pl, nwl_[1], 8) : na 
+rsih8_ = Period and choice == "RSI" and hh0_ ? valuewhen(ph, rsi[1], 8) : na
+rsil8_ = Period and choice == "RSI" and ll0_ ? valuewhen(pl, rsi[1], 8) : na
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+_m = input(title="Margin", defval="0", options=["0", "0.236", "0.382", "0.5", "0.618", "0.786", "1", "1.272", "1.618", "1.786", "2"])  
+
+m = 0.5
+if choice == "RSI" and _m == "0"
+    m := 0 
+else
+    if choice == "RSI" and _m == "0.236"
+        m := 0.236
+    else
+        if choice == "RSI" and _m == "0.382"
+            m := 0.382
+        else
+            if choice == "RSI" and _m == "0.5"
+                m := 0.5
+            else
+                if choice == "RSI" and _m == "0.618"
+                    m := 0.618
+                else
+                    if choice == "RSI" and _m == "0.786"
+                        m := 0.786
+                    else
+                        if choice == "RSI" and _m == "1"
+                            m := 1
+                        else
+                            if choice == "RSI" and _m == "1.272"
+                                m := 1.272
+                            else
+                                if choice == "RSI" and _m == "1.618"
+                                    m := 1.618
+                                else
+                                    if choice == "RSI" and _m == "1.786"
+                                        m := 1.786
+                                    else
+                                        if choice == "RSI" and _m == "2"
+                                            m := 2
+
+
+
+////////// Bullish Divergences = close LL - RSI HL /////////////////////////////
+//////////////////// MACD - Stoch RSI //////////////////////////////////////////
+
+rsi_HL1 = rsil0 > rsil1
+close_LL1 = ll0 < ll1
+
+rsi_HL2 = rsil0 > rsil2
+ and rsil1 > (rsil2 + ((rsil0 - rsil2) / 2))
+close_LL2 = ll0 < ll2 
+
+rsi_HL3 = rsil0 > rsil3 
+ and rsil1 > (rsil3 + ((rsil0 - rsil3) / 2))
+ and rsil2 > (rsil3 + ((rsil0 - rsil3) / 2))
+close_LL3 = ll0 < ll3 
+
+rsi_HL4 = rsil0 > rsil4 
+ and rsil1 > (rsil4 + ((rsil0 - rsil4) / 2))
+ and rsil2 > (rsil4 + ((rsil0 - rsil4) / 2))
+ and rsil3 > (rsil4 + ((rsil0 - rsil4) / 2))
+close_LL4 = ll0 < ll4 
+
+rsi_HL5 = rsil0 > rsil5 
+ and rsil1 > (rsil5 + ((rsil0 - rsil5) / 2))
+ and rsil2 > (rsil5 + ((rsil0 - rsil5) / 2)) 
+ and rsil3 > (rsil5 + ((rsil0 - rsil5) / 2))
+ and rsil4 > (rsil5 + ((rsil0 - rsil5) / 2))
+close_LL5 = ll0 < ll5 
+
+rsi_HL6 = rsil0 > rsil6 
+ and rsil1 > (rsil6 + ((rsil0 - rsil6) / 2)) 
+ and rsil2 > (rsil6 + ((rsil0 - rsil6) / 2)) 
+ and rsil3 > (rsil6 + ((rsil0 - rsil6) / 2)) 
+ and rsil4 > (rsil6 + ((rsil0 - rsil6) / 2)) 
+ and rsil5 > (rsil6 + ((rsil0 - rsil6) / 2))
+close_LL6 = ll0 < ll6 
+
+rsi_HLx = rsil0 > rsilx 
+ and rsil1 > (rsilx + ((rsil0 - rsilx) / 2)) 
+ and rsil2 > (rsilx + ((rsil0 - rsilx) / 2)) 
+ and rsil3 > (rsilx + ((rsil0 - rsilx) / 2)) 
+ and rsil4 > (rsilx + ((rsil0 - rsilx) / 2)) 
+ and rsil5 > (rsilx + ((rsil0 - rsilx) / 2)) 
+ and rsil6 > (rsilx + ((rsil0 - rsilx) / 2))
+close_LLx = ll0 < llx
+
+////////// Bullish Divergences = close LL - RSI HL /////////////////////////////
+//////////////////////// RSI ///////////////////////////////////////////////////
+
+close_LL1_ = ll0_ < ll1_
+rsi_HL1_ = rsil0_ > rsil1_
+
+close_LL2_ = ll0_ < ll2_ 
+ and ll1_ > ll0_ and ll1_ > (_ll2 - ((_ll2 - ll0_) * m))
+rsi_HL2_ = rsil0_ > rsil2_
+ and rsil1_ > rsil2_ 
+ and rsil1_ > (rsil2_ + ((rsil0_ - rsil2_) / 2))
+
+close_LL3_ = ll0_ < ll3_ 
+ and ll1_ > ll0_ and ll1_ > (_ll3 - ((_ll3 - ll0_) * m))
+ and ll2_ > ll0_ and ll2_ > (_ll3 - ((_ll3 - ll0_) * m))
+rsi_HL3_ = rsil0_ > rsil3_ 
+ and rsil1_ > (rsil3_ + ((rsil0_ - rsil3_) / 2))
+ and rsil2_ > (rsil3_ + ((rsil0_ - rsil3_) / 2))
+
+close_LL4_ = ll0_ < ll4_ 
+ and ll1_ > ll0_ and ll1_ > (_ll4 - ((_ll4 - ll0_) * m))
+ and ll2_ > ll0_ and ll2_ > (_ll4 - ((_ll4 - ll0_) * m)) 
+ and ll3_ > ll0_ and ll3_ > (_ll4 - ((_ll4 - ll0_) * m))
+rsi_HL4_ = rsil0_ > rsil4_ 
+ and rsil1_ > (rsil4_ + ((rsil0_ - rsil4_) / 2))
+ and rsil2_ > (rsil4_ + ((rsil0_ - rsil4_) / 2))
+ and rsil3_ > (rsil4_ + ((rsil0_ - rsil4_) / 2))
+
+close_LL5_ = ll0_ < ll5_ 
+ and ll1_ > ll0_ and ll1_ > (_ll5 - ((_ll5 - ll0_) * m))
+ and ll2_ > ll0_ and ll2_ > (_ll5 - ((_ll5 - ll0_) * m))
+ and ll3_ > ll0_ and ll3_ > (_ll5 - ((_ll5 - ll0_) * m))
+ and ll4_ > ll0_ and ll4_ > (_ll5 - ((_ll5 - ll0_) * m))
+rsi_HL5_ = rsil0_ > rsil5_ 
+ and rsil1_ > (rsil5_ + ((rsil0_ - rsil5_) / 2))
+ and rsil2_ > (rsil5_ + ((rsil0_ - rsil5_) / 2)) 
+ and rsil3_ > (rsil5_ + ((rsil0_ - rsil5_) / 2))
+ and rsil4_ > (rsil5_ + ((rsil0_ - rsil5_) / 2))
+
+close_LL6_ = ll0_ < ll6_ 
+ and ll1_ > ll0_ and ll1_ > (_ll6 - ((_ll6 - ll0_) * m))
+ and ll2_ > ll0_ and ll2_ > (_ll6 - ((_ll6 - ll0_) * m))
+ and ll3_ > ll0_ and ll3_ > (_ll6 - ((_ll6 - ll0_) * m))
+ and ll4_ > ll0_ and ll4_ > (_ll6 - ((_ll6 - ll0_) * m))
+ and ll5_ > ll0_ and ll5_ > (_ll6 - ((_ll6 - ll0_) * m))
+rsi_HL6_ = rsil0_ > rsil6_ 
+ and rsil1_ > (rsil6_ + ((rsil0_ - rsil6_) / 2)) 
+ and rsil2_ > (rsil6_ + ((rsil0_ - rsil6_) / 2)) 
+ and rsil3_ > (rsil6_ + ((rsil0_ - rsil6_) / 2)) 
+ and rsil4_ > (rsil6_ + ((rsil0_ - rsil6_) / 2)) 
+ and rsil5_ > (rsil6_ + ((rsil0_ - rsil6_) / 2))
+ 
+close_LL7_ = ll0_ < ll7_ 
+ and ll1_ > ll0_ and ll1_ > (_ll7 - ((_ll7 - ll0_) * m))
+ and ll2_ > ll0_ and ll2_ > (_ll7 - ((_ll7 - ll0_) * m))
+ and ll3_ > ll0_ and ll3_ > (_ll7 - ((_ll7 - ll0_) * m))
+ and ll4_ > ll0_ and ll4_ > (_ll7 - ((_ll7 - ll0_) * m))
+ and ll5_ > ll0_ and ll5_ > (_ll7 - ((_ll7 - ll0_) * m))
+ and ll6_ > ll0_ and ll6_ > (_ll7 - ((_ll7 - ll0_) * m))
+rsi_HL7_ = rsil0_ > rsil7_ 
+ and rsil1_ > (rsil7_ + ((rsil0_ - rsil7_) / 2)) 
+ and rsil2_ > (rsil7_ + ((rsil0_ - rsil7_) / 2)) 
+ and rsil3_ > (rsil7_ + ((rsil0_ - rsil7_) / 2)) 
+ and rsil4_ > (rsil7_ + ((rsil0_ - rsil7_) / 2)) 
+ and rsil5_ > (rsil7_ + ((rsil0_ - rsil7_) / 2))
+ and rsil6_ > (rsil7_ + ((rsil0_ - rsil7_) / 2))
+ 
+close_LL8_ = ll0_ < ll8_ 
+ and ll1_ > ll0_ and ll1_ > (_ll8 - ((_ll8 - ll0_) * m))
+ and ll2_ > ll0_ and ll2_ > (_ll8 - ((_ll8 - ll0_) * m))
+ and ll3_ > ll0_ and ll3_ > (_ll8 - ((_ll8 - ll0_) * m))
+ and ll4_ > ll0_ and ll4_ > (_ll8 - ((_ll8 - ll0_) * m))
+ and ll5_ > ll0_ and ll5_ > (_ll8 - ((_ll8 - ll0_) * m))
+ and ll6_ > ll0_ and ll6_ > (_ll8 - ((_ll8 - ll0_) * m))
+ and ll7_ > ll0_ and ll7_ > (_ll8 - ((_ll8 - ll0_) * m))
+rsi_HL8_ = rsil0_ > rsil8_ 
+ and rsil1_ > (rsil8_ + ((rsil0_ - rsil8_) / 2)) 
+ and rsil2_ > (rsil8_ + ((rsil0_ - rsil8_) / 2)) 
+ and rsil3_ > (rsil8_ + ((rsil0_ - rsil8_) / 2)) 
+ and rsil4_ > (rsil8_ + ((rsil0_ - rsil8_) / 2)) 
+ and rsil5_ > (rsil8_ + ((rsil0_ - rsil8_) / 2))
+ and rsil6_ > (rsil8_ + ((rsil0_ - rsil8_) / 2))
+ and rsil7_ > (rsil8_ + ((rsil0_ - rsil8_) / 2))
+
+div_bull_1 = 
+ choice == "Stoch RSI" or choice == "MACD" ? close_LL1 and rsi_HL1 : 
+ choice == "RSI" ? close_LL1_ and rsi_HL1_ : na
+div_bull_2 = 
+ choice == "Stoch RSI" or choice == "MACD" ? close_LL2 and rsi_HL2 : 
+ choice == "RSI" ? close_LL2_ and rsi_HL2_ : na
+div_bull_3 = 
+ choice == "Stoch RSI" or choice == "MACD" ? close_LL3 and rsi_HL3 : 
+ choice == "RSI" ? close_LL3_ and rsi_HL3_ : na
+div_bull_4 = 
+ choice == "Stoch RSI" or choice == "MACD" ? close_LL4 and rsi_HL4 : 
+ choice == "RSI" ? close_LL4_ and rsi_HL4_ : na
+div_bull_5 = 
+ choice == "Stoch RSI" or choice == "MACD" ? close_LL5 and rsi_HL5 : 
+ choice == "RSI" ? close_LL5_ and rsi_HL5_ : na
+div_bull_6 = 
+ choice == "Stoch RSI" or choice == "MACD" ? close_LL6 and rsi_HL6 : 
+ choice == "RSI" ? close_LL6_ and rsi_HL6_ : na
+div_bull_x = 
+ choice == "Stoch RSI" or choice == "MACD" ? close_LLx and rsi_HLx : na
+div_bull_7 = close_LL7_ and rsi_HL7_ 
+div_bull_8 = close_LL8_ and rsi_HL8_
+
+////////// Bearish Divergences = close HH - RSI LH /////////////////////////////
+//////////////////// MACD - Stoch RSI //////////////////////////////////////////
+
+rsi_LH1 = rsih0 < rsih1
+close_HH1 = hh0 > hh1
+
+rsi_LH2 = rsih0 < rsih2 
+ and rsih1 < (rsih2 - ((rsih2 - rsih0) / 2)) 
+close_HH2 = hh0 > hh2 
+
+rsi_LH3 = rsih0 < rsih3 
+ and rsih1 < (rsih3 - ((rsih3 - rsih0) / 2))  
+ and rsih2 < (rsih3 - ((rsih3 - rsih0) / 2))  
+close_HH3 = hh0 > hh3 
+
+rsi_LH4 = rsih0 < rsih4 
+ and rsih1 < (rsih4 - ((rsih4 - rsih0) / 2))   
+ and rsih2 < (rsih4 - ((rsih4 - rsih0) / 2))  
+ and rsih3 < (rsih4 - ((rsih4 - rsih0) / 2)) 
+close_HH4 = hh0 > hh4 
+
+rsi_LH5 = rsih0 < rsih5 
+ and rsih1 < (rsih5 - ((rsih5 - rsih0) / 2))  
+ and rsih2 < (rsih5 - ((rsih5 - rsih0) / 2))  
+ and rsih3 < (rsih5 - ((rsih5 - rsih0) / 2))  
+ and rsih4 < (rsih5 - ((rsih5 - rsih0) / 2)) 
+close_HH5 = hh0 > hh5 
+
+rsi_LH6 = rsih0 < rsih6 
+ and rsih1 < (rsih6 - ((rsih6 - rsih0) / 2))  
+ and rsih2 < (rsih6 - ((rsih6 - rsih0) / 2))   
+ and rsih3 < (rsih6 - ((rsih6 - rsih0) / 2))   
+ and rsih4 < (rsih6 - ((rsih6 - rsih0) / 2))   
+ and rsih5 < (rsih6 - ((rsih6 - rsih0) / 2))  
+close_HH6 = hh0 > hh6 
+
+rsi_LHx = rsih0 < rsihx
+ and rsih1 < (rsihx - ((rsihx - rsih0) / 2))   
+ and rsih2 < (rsihx - ((rsihx - rsih0) / 2))  
+ and rsih3 < (rsihx - ((rsihx - rsih0) / 2))  
+ and rsih4 < (rsihx - ((rsihx - rsih0) / 2))  
+ and rsih5 < (rsihx - ((rsihx - rsih0) / 2))  
+ and rsih6 < (rsihx - ((rsihx - rsih0) / 2)) 
+close_HHx = hh0 > hhx
+
+////////// Bearish Divergences = close HH - RSI LH /////////////////////////////
+//////////////////////// RSI ///////////////////////////////////////////////////
+
+close_HH1_ = hh0_ > hh1_
+rsi_LH1_ = rsih0_ < rsih1_
+
+close_HH2_ = hh0_ > hh2_ 
+ and hh1_ < hh0_ and hh1_ < (_hh2 + ((hh0_ - _hh2) * m))
+rsi_LH2_ = rsih0_ < rsih2 
+ and rsih1_ < (rsih2_ - ((rsih2_ - rsih0_) / 2)) 
+
+close_HH3_ = hh0_ > hh3_ 
+ and hh1_ < hh0_ and hh1_ < (_hh3 + ((hh0_ - _hh3) * m))
+ and hh2_ < hh0_ and hh2_ < (_hh3 + ((hh0_ - _hh3) * m))
+rsi_LH3_ = rsih0_ < rsih3_ 
+ and rsih1_ < (rsih3_ - ((rsih3_ - rsih0_) / 2))  
+ and rsih2_ < (rsih3_ - ((rsih3_ - rsih0_) / 2))  
+
+close_HH4_ = hh0_ > hh4_ 
+ and hh1_ < hh0_ and hh1_ < (_hh4 + ((hh0_ - _hh4) * m)) 
+ and hh2_ < hh0_ and hh2_ < (_hh4 + ((hh0_ - _hh4) * m))  
+ and hh3_ < hh0_ and hh3_ < (_hh4 + ((hh0_ - _hh4) * m)) 
+rsi_LH4_ = rsih0_ < rsih4_ 
+ and rsih1_ < (rsih4_ - ((rsih4_ - rsih0_) / 2))   
+ and rsih2_ < (rsih4_ - ((rsih4_ - rsih0_) / 2))  
+ and rsih3_ < (rsih4_ - ((rsih4_ - rsih0_) / 2)) 
+
+close_HH5_ = hh0_ > hh5_ 
+ and hh1_ < hh0_ and hh1_ < (_hh5 + ((hh0_ - _hh5) * m))  
+ and hh2_ < hh0_ and hh2_ < (_hh5 + ((hh0_ - _hh5) * m))  
+ and hh3_ < hh0_ and hh3_ < (_hh5 + ((hh0_ - _hh5) * m))  
+ and hh4_ < hh0_ and hh4_ < (_hh5 + ((hh0_ - _hh5) * m)) 
+rsi_LH5_ = rsih0_ < rsih5_ 
+ and rsih1_ < (rsih5_ - ((rsih5_ - rsih0_) / 2))  
+ and rsih2_ < (rsih5_ - ((rsih5_ - rsih0_) / 2))  
+ and rsih3_ < (rsih5_ - ((rsih5_ - rsih0_) / 2))  
+ and rsih4_ < (rsih5_ - ((rsih5_ - rsih0_) / 2)) 
+
+close_HH6_ = hh0_ > hh6_ 
+ and hh1_ < hh0_ and hh1_ < (_hh6 + ((hh0_ - _hh6) * m))  
+ and hh2_ < hh0_ and hh2_ < (_hh6 + ((hh0_ - _hh6) * m))  
+ and hh3_ < hh0_ and hh3_ < (_hh6 + ((hh0_ - _hh6) * m))  
+ and hh4_ < hh0_ and hh4_ < (_hh6 + ((hh0_ - _hh6) * m))  
+ and hh5_ < hh0_ and hh5_ < (_hh6 + ((hh0_ - _hh6) * m)) 
+rsi_LH6_ = rsih0_ < rsih6_ 
+ and rsih1_ < (rsih6_ - ((rsih6_ - rsih0_) / 2))  
+ and rsih2_ < (rsih6_ - ((rsih6_ - rsih0_) / 2))   
+ and rsih3_ < (rsih6_ - ((rsih6_ - rsih0_) / 2))   
+ and rsih4_ < (rsih6_ - ((rsih6_ - rsih0_) / 2))   
+ and rsih5_ < (rsih6_ - ((rsih6_ - rsih0_) / 2))  
+
+close_HH7_ = hh0_ > hh7_ 
+ and hh1_ < hh0_ and hh1_ < (_hh7 + ((hh0_ - _hh7) * m))  
+ and hh2_ < hh0_ and hh2_ < (_hh7 + ((hh0_ - _hh7) * m))  
+ and hh3_ < hh0_ and hh3_ < (_hh7 + ((hh0_ - _hh7) * m))  
+ and hh4_ < hh0_ and hh4_ < (_hh7 + ((hh0_ - _hh7) * m))  
+ and hh5_ < hh0_ and hh5_ < (_hh7 + ((hh0_ - _hh7) * m)) 
+ and hh6_ < hh0_ and hh6_ < (_hh7 + ((hh0_ - _hh7) * m)) 
+rsi_LH7_ = rsih0_ < rsih7_ 
+ and rsih1_ < (rsih7_ - ((rsih7_ - rsih0_) / 2))   
+ and rsih2_ < (rsih7_ - ((rsih7_ - rsih0_) / 2))  
+ and rsih3_ < (rsih7_ - ((rsih7_ - rsih0_) / 2))  
+ and rsih4_ < (rsih7_ - ((rsih7_ - rsih0_) / 2))  
+ and rsih5_ < (rsih7_ - ((rsih7_ - rsih0_) / 2))  
+ and rsih6_ < (rsih7_ - ((rsih7_ - rsih0_) / 2)) 
+ 
+close_HH8_ = hh0_ > hh8_ 
+ and hh1_ < hh0_ and hh1_ < (_hh8 + ((hh0_ - _hh8) * m))  
+ and hh2_ < hh0_ and hh2_ < (_hh8 + ((hh0_ - _hh8) * m))  
+ and hh3_ < hh0_ and hh3_ < (_hh8 + ((hh0_ - _hh8) * m))  
+ and hh4_ < hh0_ and hh4_ < (_hh8 + ((hh0_ - _hh8) * m))  
+ and hh5_ < hh0_ and hh5_ < (_hh8 + ((hh0_ - _hh8) * m)) 
+ and hh6_ < hh0_ and hh6_ < (_hh8 + ((hh0_ - _hh8) * m))  
+ and hh7_ < hh0_ and hh7_ < (_hh8 + ((hh0_ - _hh8) * m)) 
+rsi_LH8_ = rsih0_ < rsih8_ 
+ and rsih1_ < (rsih8_ - ((rsih8_ - rsih0_) / 2))  
+ and rsih2_ < (rsih8_ - ((rsih8_ - rsih0_) / 2))  
+ and rsih3_ < (rsih8_ - ((rsih8_ - rsih0_) / 2)) 
+ and rsih4_ < (rsih8_ - ((rsih8_ - rsih0_) / 2))  
+ and rsih5_ < (rsih8_ - ((rsih8_ - rsih0_) / 2))  
+ and rsih6_ < (rsih8_ - ((rsih8_ - rsih0_) / 2))  
+ and rsih7_ < (rsih8_ - ((rsih8_ - rsih0_) / 2)) 
+ 
+div_bear_1 = 
+ choice == "Stoch RSI" or choice == "MACD" ? close_HH1 and rsi_LH1 :
+ choice == "RSI" ? close_HH1_ and rsi_LH1_ : na
+div_bear_2 = 
+ choice == "Stoch RSI" or choice == "MACD" ? close_HH2 and rsi_LH2 :
+ choice == "RSI" ? close_HH2_ and rsi_LH2_ : na
+div_bear_3 = 
+ choice == "Stoch RSI" or choice == "MACD" ? close_HH3 and rsi_LH3 :
+ choice == "RSI" ? close_HH3_ and rsi_LH3_ : na
+div_bear_4 = 
+ choice == "Stoch RSI" or choice == "MACD" ? close_HH4 and rsi_LH4 :
+ choice == "RSI" ? close_HH4_ and rsi_LH4_ : na
+div_bear_5 = 
+ choice == "Stoch RSI" or choice == "MACD" ? close_HH5 and rsi_LH5 :
+ choice == "RSI" ? close_HH5_ and rsi_LH5_ : na
+div_bear_6 = 
+ choice == "Stoch RSI" or choice == "MACD" ? close_HH6 and rsi_LH6 :
+ choice == "RSI" ? close_HH6_ and rsi_LH6_ : na
+div_bear_x = 
+ choice == "Stoch RSI" or choice == "MACD" ? close_HHx and rsi_LHx : na
+div_bear_7 = close_HH7_ and rsi_LH7_
+div_bear_8 = close_HH8_ and rsi_LH8_
+
+////////// Hidden Bullish Divergences = close HL - RSI LL //////////////////////
+//////////////////// MACD - Stoch RSI //////////////////////////////////////////
+
+rsi_LL1 = rsil0 < rsil1
+close_HL1 = ll0 > ll1
+
+rsi_LL2 = rsil0 < rsil2 
+ and rsil1 > (rsil2 + ((rsil2 - rsil0) / 2)) 
+close_HL2 = ll0 > ll2 
+
+rsi_LL3 = rsil0 < rsil3 
+ and rsil1 > (rsil3 + ((rsil3 - rsil0) / 2))  
+ and rsil2 > (rsil3 + ((rsil3 - rsil0) / 2))  
+close_HL3 = ll0 > ll3 
+
+rsi_LL4 = rsil0 < rsil4 
+ and rsil1 > (rsil4 + ((rsil4 - rsil0) / 2))   
+ and rsil2 > (rsil4 + ((rsil4 - rsil0) / 2))  
+ and rsil3 > (rsil4 + ((rsil4 - rsil0) / 2)) 
+close_HL4 = ll0 > ll4 
+
+rsi_LL5 = rsil0 < rsil5 
+ and rsil1 > (rsil5 + ((rsil5 - rsil0) / 2))  
+ and rsil2 > (rsil5 + ((rsil5 - rsil0) / 2))  
+ and rsil3 > (rsil5 + ((rsil5 - rsil0) / 2))  
+ and rsil4 > (rsil5 + ((rsil5 - rsil0) / 2)) 
+close_HL5 = ll0 > ll5 
+
+rsi_LL6 = rsil0 < rsil6 
+ and rsil1 > (rsil6 + ((rsil6 - rsil0) / 2))  
+ and rsil2 > (rsil6 + ((rsil6 - rsil0) / 2))   
+ and rsil3 > (rsil6 + ((rsil6 - rsil0) / 2))   
+ and rsil4 > (rsil6 + ((rsil6 - rsil0) / 2))   
+ and rsil5 > (rsil6 + ((rsil6 - rsil0) / 2))  
+close_HL6 = ll0 > ll6 
+
+rsi_LLx = rsil0 < rsilx 
+ and rsil1 > (rsilx + ((rsilx - rsil0) / 2))   
+ and rsil2 > (rsilx + ((rsilx - rsil0) / 2))    
+ and rsil3 > (rsilx + ((rsilx - rsil0) / 2))    
+ and rsil4 > (rsilx + ((rsilx - rsil0) / 2))    
+ and rsil5 > (rsilx + ((rsilx - rsil0) / 2))    
+ and rsil6 > (rsilx + ((rsilx - rsil0) / 2))   
+close_HLx = ll0 > llx
+
+////////// Hidden Bullish Divergences = close HL - RSI LL //////////////////////
+/////////////////////////// RSI ////////////////////////////////////////////////
+
+close_HL1_ = ll0_ > ll1_
+rsi_LL1_ = rsil0_ < rsil1_
+
+close_HL2_ = ll0_ > ll2_ 
+ and ll1_ > ll0_ and ll1_ > (_ll2 - ((ll0_ - _ll2) * m))
+rsi_LL2_ = rsil0_ < rsil2_ 
+ and rsil1_ > (rsil2_ - ((rsil2_ - rsil0_) / 2)) 
+
+close_HL3_ = ll0_ > ll3_ 
+ and ll1_ > ll0_ and ll1_ > (_ll3 - ((ll0_ - _ll3) * m)) 
+ and ll2_ > ll0_ and ll2_ > (_ll3 - ((ll0_ - _ll3) * m))
+rsi_LL3_ = rsil0_ < rsil3_ 
+ and rsil1_ > (rsil3_ - ((rsil3_ - rsil0_) / 2))  
+ and rsil2_ > (rsil3_ - ((rsil3_ - rsil0_) / 2))  
+
+close_HL4_ = ll0_ > ll4_ 
+ and ll1_ > ll0_ and ll1_ > (_ll4 - ((ll0_ - _ll4) * m)) 
+ and ll2_ > ll0_ and ll2_ > (_ll4 - ((ll0_ - _ll4) * m)) 
+ and ll3_ > ll0_ and ll3_ > (_ll4 - ((ll0_ - _ll4) * m))
+rsi_LL4_ = rsil0_ < rsil4_ 
+ and rsil1_ > (rsil4_ - ((rsil4_ - rsil0_) / 2))   
+ and rsil2_ > (rsil4_ - ((rsil4_ - rsil0_) / 2))  
+ and rsil3_ > (rsil4_ - ((rsil4_ - rsil0_) / 2)) 
+
+close_HL5_ = ll0_ > ll5_ 
+ and ll1_ > ll0_ and ll1_ > (_ll5 - ((ll0_ - _ll5) * m)) 
+ and ll2_ > ll0_ and ll2_ > (_ll5 - ((ll0_ - _ll5) * m)) 
+ and ll3_ > ll0_ and ll3_ > (_ll5 - ((ll0_ - _ll5) * m)) 
+ and ll4_ > ll0_ and ll4_ > (_ll5 - ((ll0_ - _ll5) * m))
+rsi_LL5_ = rsil0_ < rsil5_ 
+ and rsil1_ > (rsil5_ - ((rsil5_ - rsil0_) / 2))  
+ and rsil2_ > (rsil5_ - ((rsil5_ - rsil0_) / 2))  
+ and rsil3_ > (rsil5_ - ((rsil5_ - rsil0_) / 2))  
+ and rsil4_ > (rsil5_ - ((rsil5_ - rsil0_) / 2)) 
+
+close_HL6_ = ll0_ > ll6_ 
+ and ll1_ > ll0_ and ll1_ > (_ll6 - ((ll0_ - _ll6) * m)) 
+ and ll2_ > ll0_ and ll2_ > (_ll6 - ((ll0_ - _ll6) * m)) 
+ and ll3_ > ll0_ and ll3_ > (_ll6 - ((ll0_ - _ll6) * m)) 
+ and ll4_ > ll0_ and ll4_ > (_ll6 - ((ll0_ - _ll6) * m)) 
+ and ll5_ > ll0_ and ll5_ > (_ll6 - ((ll0_ - _ll6) * m))
+rsi_LL6_ = rsil0_ < rsil6_ 
+ and rsil1_ > (rsil6_ - ((rsil6_ - rsil0_) / 2))  
+ and rsil2_ > (rsil6_ - ((rsil6_ - rsil0_) / 2))   
+ and rsil3_ > (rsil6_ - ((rsil6_ - rsil0_) / 2))   
+ and rsil4_ > (rsil6_ - ((rsil6_ - rsil0_) / 2))   
+ and rsil5_ > (rsil6_ - ((rsil6_ - rsil0_) / 2))  
+
+close_HL7_ = ll0_ > ll7_ 
+ and ll1_ > ll0_ and ll1_ > (_ll7 - ((ll0_ - _ll7) * m)) 
+ and ll2_ > ll0_ and ll2_ > (_ll7 - ((ll0_ - _ll7) * m)) 
+ and ll3_ > ll0_ and ll3_ > (_ll7 - ((ll0_ - _ll7) * m)) 
+ and ll4_ > ll0_ and ll4_ > (_ll7 - ((ll0_ - _ll7) * m)) 
+ and ll5_ > ll0_ and ll5_ > (_ll7 - ((ll0_ - _ll7) * m)) 
+ and ll6_ > ll0_ and ll6_ > (_ll7 - ((ll0_ - _ll7) * m))
+rsi_LL7_ = rsil0_ < rsil7_ 
+ and rsil1_ > (rsil7_ - ((rsil7_ - rsil0_) / 2))   
+ and rsil2_ > (rsil7_ - ((rsil7_ - rsil0_) / 2))    
+ and rsil3_ > (rsil7_ - ((rsil7_ - rsil0_) / 2))    
+ and rsil4_ > (rsil7_ - ((rsil7_ - rsil0_) / 2))    
+ and rsil5_ > (rsil7_ - ((rsil7_ - rsil0_) / 2))    
+ and rsil6_ > (rsil7_ - ((rsil7_ - rsil0_) / 2))   
+
+close_HL8_ = ll0_ > ll8_ 
+ and ll1_ > ll0_ and ll1_ > (_ll8 - ((ll0_ - _ll8) * m)) 
+ and ll2_ > ll0_ and ll2_ > (_ll8 - ((ll0_ - _ll8) * m)) 
+ and ll3_ > ll0_ and ll3_ > (_ll8 - ((ll0_ - _ll8) * m)) 
+ and ll4_ > ll0_ and ll4_ > (_ll8 - ((ll0_ - _ll8) * m)) 
+ and ll5_ > ll0_ and ll5_ > (_ll8 - ((ll0_ - _ll8) * m)) 
+ and ll6_ > ll0_ and ll6_ > (_ll8 - ((ll0_ - _ll8) * m)) 
+ and ll7_ > ll0_ and ll7_ > (_ll8 - ((ll0_ - _ll8) * m))
+rsi_LL8_ = rsil0_ < rsil8_ 
+ and rsil1_ > (rsil8_ - ((rsil8_ - rsil0_) / 2))    
+ and rsil2_ > (rsil8_ - ((rsil8_ - rsil0_) / 2))  
+ and rsil3_ > (rsil8_ - ((rsil8_ - rsil0_) / 2))  
+ and rsil4_ > (rsil8_ - ((rsil8_ - rsil0_) / 2))  
+ and rsil5_ > (rsil8_ - ((rsil8_ - rsil0_) / 2))  
+ and rsil6_ > (rsil8_ - ((rsil8_ - rsil0_) / 2))  
+ and rsil7_ > (rsil8_ - ((rsil8_ - rsil0_) / 2)) 
+
+hid_div_bull_1 = 
+ choice == "Stoch RSI" or choice == "MACD" ? close_HL1 and rsi_LL1 :
+ choice == "RSI" ? close_HL1_ and rsi_LL1_ : na
+hid_div_bull_2 = 
+ choice == "Stoch RSI" or choice == "MACD" ? close_HL2 and rsi_LL2 :
+ choice == "RSI" ? close_HL2_ and rsi_LL2_ : na
+hid_div_bull_3 = 
+ choice == "Stoch RSI" or choice == "MACD" ? close_HL3 and rsi_LL3 :
+ choice == "RSI" ? close_HL3_ and rsi_LL3_ : na
+hid_div_bull_4 = 
+ choice == "Stoch RSI" or choice == "MACD" ? close_HL4 and rsi_LL4 :
+ choice == "RSI" ? close_HL4_ and rsi_LL4_ : na
+hid_div_bull_5 = 
+ choice == "Stoch RSI" or choice == "MACD" ? close_HL5 and rsi_LL5 :
+ choice == "RSI" ? close_HL5_ and rsi_LL5_ : na
+hid_div_bull_6 = 
+ choice == "Stoch RSI" or choice == "MACD" ? close_HL6 and rsi_LL6 :
+ choice == "RSI" ? close_HL6_ and rsi_LL6_ : na
+hid_div_bull_x = 
+ choice == "Stoch RSI" or choice == "MACD" ? close_HLx and rsi_LLx : na
+hid_div_bull_7 = close_HL7_ and rsi_LL7_
+hid_div_bull_8 = close_HL8_ and rsi_LL8_
+
+////////// Hidden Bearish Divergences = close LH - RSI HH  //////////////////////
+//////////////////// MACD - Stoch RSI //////////////////////////////////////////
+
+rsi_HH1 = rsih0 > rsih1
+close_LH1 = hh0 < hh1
+
+rsi_HH2 = rsih0 > rsih2 
+ and rsih1 < (rsih2 + ((rsih0 - rsih2) / 2))  
+close_LH2 = hh0 < hh2 
+
+rsi_HH3 = rsih0 > rsih3 
+ and rsih1 < (rsih3 + ((rsih0 - rsih3) / 2))  
+ and rsih2 < (rsih3 + ((rsih0 - rsih3) / 2))
+close_LH3 = hh0 < hh3 
+
+rsi_HH4 = rsih0 > rsih4 
+ and rsih1 < (rsih4 + ((rsih0 - rsih4) / 2)) 
+ and rsih2 < (rsih4 + ((rsih0 - rsih4) / 2)) 
+ and rsih3 < (rsih4 + ((rsih0 - rsih4) / 2))
+close_LH4 = hh0 < hh4 
+
+rsi_HH5 = rsih0 > rsih5 
+ and rsih1 < (rsih5 + ((rsih0 - rsih5) / 2)) 
+ and rsih2 < (rsih5 + ((rsih0 - rsih5) / 2))  
+ and rsih3 < (rsih5 + ((rsih0 - rsih5) / 2))  
+ and rsih4 < (rsih5 + ((rsih0 - rsih5) / 2)) 
+close_LH5 = hh0 < hh5 
+
+rsi_HH6 = rsih0 > rsih6 
+ and rsih1 < (rsih6 + ((rsih0 - rsih6) / 2))  
+ and rsih2 < (rsih6 + ((rsih0 - rsih6) / 2))   
+ and rsih3 < (rsih6 + ((rsih0 - rsih6) / 2))   
+ and rsih4 < (rsih6 + ((rsih0 - rsih6) / 2))   
+ and rsih5 < (rsih6 + ((rsih0 - rsih6) / 2))  
+close_LH6 = hh0 < hh6 
+
+rsi_HHx = rsih0 > rsihx
+ and rsih1 < (rsihx + ((rsih0 - rsihx) / 2))   
+ and rsih2 < (rsihx + ((rsih0 - rsihx) / 2))  
+ and rsih3 < (rsihx + ((rsih0 - rsihx) / 2))  
+ and rsih4 < (rsihx + ((rsih0 - rsihx) / 2))  
+ and rsih5 < (rsihx + ((rsih0 - rsihx) / 2))  
+ and rsih6 < (rsihx + ((rsih0 - rsihx) / 2)) 
+close_LHx = hh0 < hhx
+
+////////// Hidden Bearish Divergences = close LH - RSI HH  //////////////////////
+/////////////////////////// RSI ////////////////////////////////////////////////
+
+close_LH1_ = hh0_ < hh1_
+rsi_HH1_ = rsih0_ > rsih1_
+
+close_LH2_ = hh0_ < hh2_ 
+ and hh1_ < hh0_ and hh1_ < (_hh2 + ((_hh2 - hh0_) * m)) 
+rsi_HH2_ = rsih0_ > rsih2_ 
+ and rsih1_ < (rsih2_ + ((rsih0_ - rsih2_) / 2))  
+
+close_LH3_ = hh0_ < hh3_ 
+ and hh1_ < hh0_ and hh1_ < (_hh3 + ((_hh3 - hh0_) * m))  
+ and hh2_ < hh0_ and hh2_ < (_hh3 + ((_hh3 - hh0_) * m)) 
+rsi_HH3_ = rsih0_ > rsih3_ 
+ and rsih1_ < (rsih3_ + ((rsih0_ - rsih3_) / 2))  
+ and rsih2_ < (rsih3_ + ((rsih0_ - rsih3_) / 2))
+
+close_LH4_ = hh0_ < hh4_ 
+ and hh1_ < hh0_ and hh1_ < (_hh4 + ((_hh4 - hh0_) * m))  
+ and hh2_ < hh0_ and hh2_ < (_hh4 + ((_hh4 - hh0_) * m))  
+ and hh3_ < hh0_ and hh3_ < (_hh4 + ((_hh4 - hh0_) * m)) 
+rsi_HH4_ = rsih0_ > rsih4_ 
+ and rsih1_ < (rsih4_ + ((rsih0_ - rsih4_) / 2)) 
+ and rsih2_ < (rsih4_ + ((rsih0_ - rsih4_) / 2)) 
+ and rsih3_ < (rsih4_ + ((rsih0_ - rsih4_) / 2))
+
+close_LH5_ = hh0_ < hh5_ 
+ and hh1_ < hh0_ and hh1_ < (_hh5 + ((_hh5 - hh0_) * m))  
+ and hh2_ < hh0_ and hh2_ < (_hh5 + ((_hh5 - hh0_) * m))  
+ and hh3_ < hh0_ and hh3_ < (_hh5 + ((_hh5 - hh0_) * m))  
+ and hh4_ < hh0_ and hh4_ < (_hh5 + ((_hh5 - hh0_) * m)) 
+rsi_HH5_ = rsih0_ > rsih5_ 
+ and rsih1_ < (rsih5_ + ((rsih0_ - rsih5_) / 2)) 
+ and rsih2_ < (rsih5_ + ((rsih0_ - rsih5_) / 2))  
+ and rsih3_ < (rsih5_ + ((rsih0_ - rsih5_) / 2))  
+ and rsih4_ < (rsih5_ + ((rsih0_ - rsih5_) / 2)) 
+
+close_LH6_ = hh0_ < hh6_ 
+ and hh1_ < hh0_ and hh1_ < (_hh6 + ((_hh6 - hh0_) * m))  
+ and hh2_ < hh0_ and hh2_ < (_hh6 + ((_hh6 - hh0_) * m))  
+ and hh3_ < hh0_ and hh3_ < (_hh6 + ((_hh6 - hh0_) * m))  
+ and hh4_ < hh0_ and hh4_ < (_hh6 + ((_hh6 - hh0_) * m))  
+ and hh5_ < hh0_ and hh5_ < (_hh6 + ((_hh6 - hh0_) * m)) 
+rsi_HH6_ = rsih0_ > rsih6_ 
+ and rsih1_ < (rsih6_ + ((rsih0_ - rsih6_) / 2))  
+ and rsih2_ < (rsih6_ + ((rsih0_ - rsih6_) / 2))   
+ and rsih3_ < (rsih6_ + ((rsih0_ - rsih6_) / 2))   
+ and rsih4_ < (rsih6_ + ((rsih0_ - rsih6_) / 2))   
+ and rsih5_ < (rsih6_ + ((rsih0_ - rsih6_) / 2))  
+
+close_LH7_ = hh0_ < hh7_ 
+ and hh1_ < hh0_ and hh1_ < (_hh7 + ((_hh7 - hh0_) * m))  
+ and hh2_ < hh0_ and hh2_ < (_hh7 + ((_hh7 - hh0_) * m))  
+ and hh3_ < hh0_ and hh3_ < (_hh7 + ((_hh7 - hh0_) * m))  
+ and hh4_ < hh0_ and hh4_ < (_hh7 + ((_hh7 - hh0_) * m))  
+ and hh5_ < hh0_ and hh5_ < (_hh7 + ((_hh7 - hh0_) * m))
+ and hh6_ < hh0_ and hh6_ < (_hh7 + ((_hh7 - hh0_) * m)) 
+rsi_HH7_ = rsih0_ > rsih7_ 
+ and rsih1_ < (rsih7_ + ((rsih0_ - rsih7_) / 2))   
+ and rsih2_ < (rsih7_ + ((rsih0_ - rsih7_) / 2))  
+ and rsih3_ < (rsih7_ + ((rsih0_ - rsih7_) / 2))  
+ and rsih4_ < (rsih7_ + ((rsih0_ - rsih7_) / 2))  
+ and rsih5_ < (rsih7_ + ((rsih0_ - rsih7_) / 2))  
+ and rsih6_ < (rsih7_ + ((rsih0_ - rsih7_) / 2)) 
+
+close_LH8_ = hh0_ < hh8_ 
+ and hh1_ < hh0_ and hh1_ < (_hh8 + ((_hh8 - hh0_) * m))  
+ and hh2_ < hh0_ and hh2_ < (_hh8 + ((_hh8 - hh0_) * m))  
+ and hh3_ < hh0_ and hh3_ < (_hh8 + ((_hh8 - hh0_) * m))  
+ and hh4_ < hh0_ and hh4_ < (_hh8 + ((_hh8 - hh0_) * m))  
+ and hh5_ < hh0_ and hh5_ < (_hh8 + ((_hh8 - hh0_) * m)) 
+ and hh6_ < hh0_ and hh6_ < (_hh8 + ((_hh8 - hh0_) * m))  
+ and hh7_ < hh0_ and hh7_ < (_hh8 + ((_hh8 - hh0_) * m)) 
+rsi_HH8_ = rsih0_ > rsih8_ 
+ and rsih1_ < (rsih8_ + ((rsih0_ - rsih8_) / 2))  
+ and rsih2_ < (rsih8_ + ((rsih0_ - rsih8_) / 2))  
+ and rsih3_ < (rsih8_ + ((rsih0_ - rsih8_) / 2))  
+ and rsih4_ < (rsih8_ + ((rsih0_ - rsih8_) / 2))  
+ and rsih5_ < (rsih8_ + ((rsih0_ - rsih8_) / 2))  
+ and rsih6_ < (rsih8_ + ((rsih0_ - rsih8_) / 2))  
+ and rsih7_ < (rsih8_ + ((rsih0_ - rsih8_) / 2)) 
+
+hid_div_bear_1 = 
+ choice == "Stoch RSI" or choice == "MACD" ? close_LH1 and rsi_HH1 :
+ choice == "RSI" ? close_LH1_ and rsi_HH1_ : na
+hid_div_bear_2 = 
+ choice == "Stoch RSI" or choice == "MACD" ? close_LH2 and rsi_HH2 :
+ choice == "RSI" ? close_LH2_ and rsi_HH2_ : na
+hid_div_bear_3 = 
+ choice == "Stoch RSI" or choice == "MACD" ? close_LH3 and rsi_HH3 :
+ choice == "RSI" ? close_LH3_ and rsi_HH3_ : na
+hid_div_bear_4 = 
+ choice == "Stoch RSI" or choice == "MACD" ? close_LH4 and rsi_HH4 :
+ choice == "RSI" ? close_LH4_ and rsi_HH4_ : na
+hid_div_bear_5 = 
+ choice == "Stoch RSI" or choice == "MACD" ? close_LH5 and rsi_HH5 :
+ choice == "RSI" ? close_LH5_ and rsi_HH5_ : na
+hid_div_bear_6 = 
+ choice == "Stoch RSI" or choice == "MACD" ? close_LH6 and rsi_HH6 :
+ choice == "RSI" ? close_LH6_ and rsi_HH6_ : na
+hid_div_bear_x = 
+ choice == "Stoch RSI" or choice == "MACD" ? close_LHx and rsi_HHx : na
+hid_div_bear_7 = close_LH7_ and rsi_HH7_
+hid_div_bear_8 = close_LH8_ and rsi_HH8_
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+plotchar(div_bull_1 and not div_bull_1[1] and show_div, char="↑︎︎", title="Bull Div 1",
+ location=location.bottom, color= color.green, size=size.tiny, transp=30, offset=-1)
+plotchar(div_bull_2 and not div_bull_2[1] and show_div, char="↑︎︎", title="Bull Div 2",
+ location=location.bottom, color= color.green, size=size.tiny, transp=30, offset=-1)
+plotchar(div_bull_3 and not div_bull_3[1] and show_div, char="↑︎︎", title="Bull Div 3",
+ location=location.bottom, color= color.green, size=size.tiny, transp=30, offset=-1)
+plotchar(div_bull_4 and not div_bull_4[1] and show_div, char="↑︎︎", title="Bull Div 4",
+ location=location.bottom, color= color.lime, size=size.tiny, transp=20, offset=-1)
+plotchar(div_bull_5 and not div_bull_5[1] and show_div, char="↑︎︎", title="Bull Div 5",
+ location=location.bottom, color= color.lime, size=size.tiny, transp=20, offset=-1)
+plotchar(div_bull_6 and not div_bull_6[1] and show_div, char="↑︎︎", title="Bull Div 6",
+ location=location.bottom, color= color.lime, size=size.tiny, transp=20, offset=-1)
+plotchar(div_bull_7 and not div_bull_7[1] and show_div, char="↑︎︎", title="Bull Div 7",
+ location=location.bottom, color= color.aqua, size=size.tiny, transp=20, offset=-1)
+plotchar(div_bull_8 and not div_bull_8[1] and show_div, char="↑︎︎", title="Bull Div 8",
+ location=location.bottom, color= color.aqua, size=size.tiny, transp=20, offset=-1)
+plotchar(div_bull_x and not div_bull_x[1] and show_div, char="↑︎︎", title="Bull Div x",
+ location=location.bottom, color= color.aqua, size=size.tiny, transp=20, offset=-1)
+
+plotchar(div_bear_1 and not div_bear_1[1] and show_div, char="↓︎︎", title="Bear Div 1",
+ location=location.top, color= color.orange, size=size.tiny, transp=30, offset=-1)
+plotchar(div_bear_2 and not div_bear_2[1] and show_div, char="↓︎︎", title="Bear Div 2",
+ location=location.top, color= color.orange, size=size.tiny, transp=30, offset=-1)
+plotchar(div_bear_3 and not div_bear_3[1] and show_div, char="↓︎︎", title="Bear Div 3",
+ location=location.top, color= color.orange, size=size.tiny, transp=30, offset=-1)
+plotchar(div_bear_4 and not div_bear_4[1] and show_div, char="↓︎︎", title="Bear Div 4",
+ location=location.top, color= color.red, size=size.tiny, transp=20, offset=-1)
+plotchar(div_bear_5 and not div_bear_5[1] and show_div, char="↓︎︎", title="Bear Div 5",
+ location=location.top, color= color.red, size=size.tiny, transp=20, offset=-1)
+plotchar(div_bear_6 and not div_bear_6[1] and show_div, char="↓︎︎", title="Bear Div 6",
+ location=location.top, color= color.red, size=size.tiny, transp=20, offset=-1)
+plotchar(div_bear_7 and not div_bear_7[1] and show_div, char="↓︎︎", title="Bear Div 7",
+ location=location.top, color= color.red, size=size.tiny, transp=20, offset=-1)
+plotchar(div_bear_8 and not div_bear_8[1] and show_div, char="↓︎︎", title="Bear Div 8",
+ location=location.top, color= color.red, size=size.tiny, transp=20, offset=-1)
+plotchar(div_bear_x and not div_bear_x[1] and show_div, char="↓︎︎", title="Bear Div x",
+ location=location.top, color= color.purple, size=size.tiny, transp=20, offset=-1)
+
+plotchar(hid_div_bull_1 and not hid_div_bull_1[1] and show_hiddiv, char="↑︎︎", title="Hidden Bull Div 1",
+ location=location.bottom, color= color.white, size=size.tiny, transp=30, offset=-1)
+plotchar(hid_div_bull_2 and not hid_div_bull_2[1] and show_hiddiv, char="↑︎︎", title="Hidden Bull Div 2",
+ location=location.bottom, color= color.white, size=size.tiny, transp=30, offset=-1)
+plotchar(hid_div_bull_3 and not hid_div_bull_3[1] and show_hiddiv, char="↑︎︎", title="Hidden Bull Div 3",
+ location=location.bottom, color= color.white, size=size.tiny, transp=30, offset=-1)
+plotchar(hid_div_bull_4 and not hid_div_bull_4[1] and show_hiddiv, char="↑︎︎", title="Hidden Bull Div 4",
+ location=location.bottom, color= color.white, size=size.tiny, transp=20, offset=-1)
+plotchar(hid_div_bull_5 and not hid_div_bull_5[1] and show_hiddiv, char="↑︎︎", title="Hidden Bull Div 5",
+ location=location.bottom, color= color.white, size=size.tiny, transp=20, offset=-1)
+plotchar(hid_div_bull_6 and not hid_div_bull_6[1] and show_hiddiv, char="↑︎︎", title="Hidden Bull Div 6",
+ location=location.bottom, color= color.white, size=size.tiny, transp=20, offset=-1)
+plotchar(hid_div_bull_7 and not hid_div_bull_7[1] and show_hiddiv, char="↑︎︎", title="Hidden Bull Div 7",
+ location=location.bottom, color= color.white, size=size.tiny, transp=20, offset=-1)
+plotchar(hid_div_bull_8 and not hid_div_bull_8[1] and show_hiddiv, char="↑︎︎", title="Hidden Bull Div 8",
+ location=location.bottom, color= color.white, size=size.tiny, transp=20, offset=-1) 
+plotchar(hid_div_bull_x and not hid_div_bull_x[1] and show_hiddiv, char="↑︎︎", title="Hidden Bull Div x",
+ location=location.bottom, color= color.yellow, size=size.tiny, transp=20, offset=-1)
+
+plotchar(hid_div_bear_1 and not hid_div_bear_1[1] and show_hiddiv, char="↓︎", title="Hidden Bear Div 1",
+ location=location.top, color= color.white, size=size.tiny, transp=30, offset=-1)
+plotchar(hid_div_bear_2 and not hid_div_bear_2[1] and show_hiddiv, char="↓︎︎", title="Hidden Bear Div 2",
+ location=location.top, color= color.white, size=size.tiny, transp=30, offset=-1)
+plotchar(hid_div_bear_3 and not hid_div_bear_3[1] and show_hiddiv, char="↓︎︎", title="Hidden Bear Div 3",
+ location=location.top, color= color.white, size=size.tiny, transp=30, offset=-1) 
+plotchar(hid_div_bear_4 and not hid_div_bear_4[1] and show_hiddiv, char="↓︎︎", title="Hidden Bear Div 4",
+ location=location.top, color= color.white, size=size.tiny, transp=20, offset=-1) 
+plotchar(hid_div_bear_5 and not hid_div_bear_5[1] and show_hiddiv, char="↓︎︎", title="Hidden Bear Div 5",
+ location=location.top, color= color.white, size=size.tiny, transp=20, offset=-1) 
+plotchar(hid_div_bear_6 and not hid_div_bear_6[1] and show_hiddiv, char="↓︎︎", title="Hidden Bear Div 6",
+ location=location.top, color= color.white, size=size.tiny, transp=20, offset=-1) 
+plotchar(hid_div_bear_7 and not hid_div_bear_7[1] and show_hiddiv, char="↓︎︎", title="Hidden Bear Div 7",
+ location=location.top, color= color.white, size=size.tiny, transp=20, offset=-1) 
+plotchar(hid_div_bear_8 and not hid_div_bear_8[1] and show_hiddiv, char="↓︎︎", title="Hidden Bear Div 8",
+ location=location.top, color= color.white, size=size.tiny, transp=20, offset=-1)  
+plotchar(hid_div_bear_x and not hid_div_bear_x[1] and show_hiddiv, char="↓︎︎", title="Hidden Bear Div x",
+ location=location.top, color= color.yellow, size=size.tiny, transp=20, offset=-1) 
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Bullish Divergences = close LL - RSI HL
+ 
+bl1 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and div_bull_1 and rsi[i] == (choice == "RSI" ? rsil1_ : rsil1)
+        break    
+    bl1 := bl1 + 1 
+bl_1 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and div_bull_1 and rsi[i] == (choice == "RSI" ? rsil0_ : rsil0)                                                      
+        break    
+    bl_1 := bl_1 + 1 
+
+if Period and show_div and div_bull_1 and not div_bull_2 and not div_bull_3 
+ and not div_bull_4 and not div_bull_5 and not div_bull_6 and not div_bull_7 
+ and not div_bull_8
+    line1 = line.new(bar_index[bl_1], rsi[bl_1], bar_index[bl1], rsi[bl1], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.green)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not (choice == "RSI" ? pl : rl) ? line1 : na)
+    
+bl2 = 0                                                                       
+for i = 0 to 200                                                                
+    if Period and div_bull_2 and rsi[i] == (choice == "RSI" ? rsil2_ : rsil2)                                           
+        break    
+    bl2 := bl2 + 1 
+bl_2 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and div_bull_2 and rsi[i] == (choice == "RSI" ? rsil0_ : rsil0)                                                       
+        break    
+    bl_2 := bl_2 + 1 
+
+if Period and show_div and div_bull_2 and not div_bull_3 and not div_bull_4 
+ and not div_bull_5 and not div_bull_6 and not div_bull_7 and not div_bull_8
+    line1 = line.new(bar_index[bl_2], rsi[bl_2], bar_index[bl2], rsi[bl2], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.green)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not (choice == "RSI" ? pl : rl) ? line1 : na)
+
+bl3 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and div_bull_3 and rsi[i] == (choice == "RSI" ? rsil3_ : rsil3)                                           
+        break    
+    bl3 := bl3 + 1 
+bl_3 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and div_bull_3 and rsi[i] == (choice == "RSI" ? rsil0_ : rsil0)                                                       
+        break    
+    bl_3 := bl_3 + 1 
+
+if Period and show_div and div_bull_3 and not div_bull_4 and not div_bull_5 
+ and not div_bull_6 and not div_bull_7 and not div_bull_8
+    line1 = line.new(bar_index[bl_3], rsi[bl_3], bar_index[bl3], rsi[bl3], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.green)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not (choice == "RSI" ? pl : rl) ? line1 : na)
+
+bl4 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and div_bull_4 and rsi[i] == (choice == "RSI" ? rsil4_ : rsil4)                                            
+        break    
+    bl4 := bl4 + 1 
+bl_4 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and div_bull_4 and rsi[i] == (choice == "RSI" ? rsil0_ : rsil0)                                                       
+        break    
+    bl_4 := bl_4 + 1 
+
+if Period and show_div and div_bull_4 and not div_bull_5 and not div_bull_6 
+ and not div_bull_7 and not div_bull_8
+    line1 = line.new(bar_index[bl_4], rsi[bl_4], bar_index[bl4], rsi[bl4], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.lime)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not (choice == "RSI" ? pl : rl) ? line1 : na)
+
+bl5 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and div_bull_5 and rsi[i] == (choice == "RSI" ? rsil5_ : rsil5)                                            
+        break    
+    bl5 := bl5 + 1 
+bl_5 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and div_bull_5 and rsi[i] == (choice == "RSI" ? rsil0_ : rsil0)                                                       
+        break    
+    bl_5 := bl_5 + 1 
+
+if Period and show_div and div_bull_5 and not div_bull_6 and not div_bull_7 
+ and not div_bull_8
+    line1 = line.new(bar_index[bl_5], rsi[bl_5], bar_index[bl5], rsi[bl5], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.lime)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not (choice == "RSI" ? pl : rl) ? line1 : na)
+
+bl6 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and div_bull_6 and rsi[i] == (choice == "RSI" ? rsil6_ : rsil6)                                           
+        break    
+    bl6 := bl6 + 1 
+bl_6 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and div_bull_6 and rsi[i] == (choice == "RSI" ? rsil0_ : rsil0)                                                       
+        break    
+    bl_6 := bl_6 + 1 
+
+if Period and show_div and div_bull_6 and not div_bull_7 and not div_bull_8
+    line1 = line.new(bar_index[bl_6], rsi[bl_6], bar_index[bl6], rsi[bl6], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.lime)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not (choice == "RSI" ? pl : rl) ? line1 : na)
+
+bl7 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and div_bull_7 and rsi[i] == (choice == "RSI" ? rsil7_ : na)                                           
+        break    
+    bl7 := bl7 + 1 
+bl_7 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and div_bull_7 and rsi[i] == (choice == "RSI" ? rsil0_ : na)                                                       
+        break    
+    bl_7 := bl_7 + 1 
+
+if Period and show_div and div_bull_7 and not div_bull_8
+    line1 = line.new(bar_index[bl_7], rsi[bl_7], bar_index[bl7], rsi[bl7], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.aqua)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not pl ? line1 : na)
+
+bl8 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and div_bull_8 and rsi[i] == (choice == "RSI" ? rsil8_ : na)                                           
+        break    
+    bl8 := bl8 + 1 
+bl_8 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and div_bull_8 and rsi[i] == (choice == "RSI" ? rsil0_ : na)                                                       
+        break    
+    bl_8 := bl_8 + 1 
+
+if Period and show_div and div_bull_8
+    line1 = line.new(bar_index[bl_8], rsi[bl_8], bar_index[bl8], rsi[bl8], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.aqua)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not pl ? line1 : na)
+
+blx = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and div_bull_x and rsi[i] == rsilx                                        
+        break    
+    blx := blx + 1 
+bl_x = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and div_bull_x and rsi[i] == rsil0                                                      
+        break    
+    bl_x := bl_x + 1 
+
+if Period and show_div and div_bull_x
+    line1 = line.new(bar_index[bl_x], rsi[bl_x], bar_index[blx], rsi[blx], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.aqua)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not rl ? line1 : na)
+    
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Bearish Divergences = close HH - RSI LH
+
+br1 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and div_bear_1 and rsi[i] == (choice == "RSI" ? rsih1_ : rsih1)                                        
+        break    
+    br1 := br1 + 1 
+br_1 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and div_bear_1 and rsi[i] == (choice == "RSI" ? rsih0_ : rsih0)                                                       
+        break    
+    br_1 := br_1 + 1 
+
+if Period and show_div and div_bear_1 and not div_bear_2 and not div_bear_3 
+ and not div_bear_4 and not div_bear_5 and not div_bear_6 and not div_bear_7 
+ and not div_bear_8
+    line1 = line.new(bar_index[br_1], rsi[br_1], bar_index[br1], rsi[br1], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.orange)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not (choice == "RSI" ? ph : rh) ? line1 : na)
+
+br2 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and div_bear_2 and rsi[i] == (choice == "RSI" ? rsih2_ : rsih2)                                            
+        break    
+    br2 := br2 + 1 
+br_2 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and div_bear_2 and rsi[i] == (choice == "RSI" ? rsih0_ : rsih0)                                                       
+        break    
+    br_2 := br_2 + 1 
+
+if Period and show_div and div_bear_2 and not div_bear_3 and not div_bear_4 
+ and not div_bear_5 and not div_bear_6 and not div_bear_7 and not div_bear_8
+    line1 = line.new(bar_index[br_2], rsi[br_2], bar_index[br2], rsi[br2], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.orange)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not (choice == "RSI" ? ph : rh) ? line1 : na)
+    
+br3 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and div_bear_3 and rsi[i] == (choice == "RSI" ? rsih3_ : rsih3)                                           
+        break    
+    br3 := br3 + 1 
+br_3 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and div_bear_3 and rsi[i] == (choice == "RSI" ? rsih0_ : rsih0)                                                       
+        break    
+    br_3 := br_3 + 1 
+
+if Period and show_div and div_bear_3 and not div_bear_4 and not div_bear_5 
+ and not div_bear_6 and not div_bear_7 and not div_bear_8
+    line1 = line.new(bar_index[br_3], rsi[br_3], bar_index[br3], rsi[br3], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.orange)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not (choice == "RSI" ? ph : rh) ? line1 : na)
+ 
+br4 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and div_bear_4 and rsi[i] == (choice == "RSI" ? rsih4_ : rsih4)                                          
+        break    
+    br4 := br4 + 1 
+br_4 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and div_bear_4 and rsi[i] == (choice == "RSI" ? rsih0_ : rsih0)                                                       
+        break    
+    br_4 := br_4 + 1 
+
+if Period and show_div and div_bear_4 and not div_bear_5 and not div_bear_6 
+ and not div_bear_7 and not div_bear_8
+    line1 = line.new(bar_index[br_4], rsi[br_4], bar_index[br4], rsi[br4], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.red)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not (choice == "RSI" ? ph : rh) ? line1 : na) 
+    
+br5 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and div_bear_5 and rsi[i] == (choice == "RSI" ? rsih5_ : rsih5)                                           
+        break    
+    br5 := br5 + 1 
+br_5 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and div_bear_5 and rsi[i] == (choice == "RSI" ? rsih0_ : rsih0)                                                       
+        break    
+    br_5 := br_5 + 1 
+
+if Period and show_div and div_bear_5 and not div_bear_6 and not div_bear_7 
+ and not div_bear_8
+    line1 = line.new(bar_index[br_5], rsi[br_5], bar_index[br5], rsi[br5], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.red)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not (choice == "RSI" ? ph : rh) ? line1 : na)    
+    
+br6 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and div_bear_6 and rsi[i] == (choice == "RSI" ? rsih6_ : rsih6)                                          
+        break    
+    br6 := br6 + 1 
+br_6 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and div_bear_6 and rsi[i] == (choice == "RSI" ? rsih0_ : rsih0)                                                       
+        break    
+    br_6 := br_6 + 1 
+
+if Period and show_div and div_bear_6 and not div_bear_7 and not div_bear_8
+    line1 = line.new(bar_index[br_6], rsi[br_6], bar_index[br6], rsi[br6], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.red)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not (choice == "RSI" ? ph : rh) ? line1 : na)  
+
+br7 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and div_bear_7 and rsi[i] == (choice == "RSI" ? rsih7_ : na)                                          
+        break    
+    br7 := br7 + 1 
+br_7 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and div_bear_7 and rsi[i] == (choice == "RSI" ? rsih0_ : na)                                                       
+        break    
+    br_7 := br_7 + 1 
+
+if Period and show_div and div_bear_7 and not div_bear_8
+    line1 = line.new(bar_index[br_7], rsi[br_7], bar_index[br7], rsi[br7], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.red)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not ph ? line1 : na) 
+
+br8 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and div_bear_8 and rsi[i] == (choice == "RSI" ? rsih8_ : na)                                          
+        break    
+    br6 := br6 + 1 
+br_8 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and div_bear_8 and rsi[i] == (choice == "RSI" ? rsih0_ : na)                                                        
+        break    
+    br_8 := br_8 + 1 
+
+if Period and show_div and div_bear_8
+    line1 = line.new(bar_index[br_8], rsi[br_8], bar_index[br8], rsi[br8], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.red)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not ph ? line1 : na) 
+    
+brx = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and div_bear_x and rsi[i] == rsihx                                        
+        break    
+    brx := brx + 1 
+br_x = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and div_bear_x and rsi[i] == rsih0                                                      
+        break    
+    br_x := br_x + 1 
+
+if Period and show_div and div_bear_x 
+    line1 = line.new(bar_index[br_x], rsi[br_x], bar_index[brx], rsi[brx], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.purple)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not rh ? line1 : na)    
+    
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+// Hidden Bullish Divergences = close HL - RSI LL
+
+hbl1 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and hid_div_bull_1 and rsi[i] == (choice == "RSI" ? rsil1_ : rsil1)                                          
+        break    
+    hbl1 := hbl1 + 1 
+hbl_1 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and hid_div_bull_1 and rsi[i] == (choice == "RSI" ? rsil0_ : rsil0)                                                       
+        break    
+    hbl_1 := hbl_1 + 1 
+
+if Period and show_hiddiv and hid_div_bull_1 and not hid_div_bull_2 and not hid_div_bull_3 
+ and not hid_div_bull_4 and not hid_div_bull_5 and not hid_div_bull_6 and not hid_div_bull_7 
+ and not hid_div_bull_8
+    line1 = line.new(bar_index[hbl_1], rsi[hbl_1], bar_index[hbl1], rsi[hbl1], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.white)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not (choice == "RSI" ? pl : rl) ? line1 : na)
+    
+hbl2 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and hid_div_bull_2 and rsi[i] == (choice == "RSI" ? rsil2_ : rsil2)                                         
+        break    
+    hbl2 := hbl2 + 1 
+hbl_2 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and hid_div_bull_2 and rsi[i] == (choice == "RSI" ? rsil0_ : rsil0)                                                       
+        break    
+    hbl_2 := hbl_2 + 1 
+
+if Period and show_hiddiv and hid_div_bull_2 and not hid_div_bull_3 and not hid_div_bull_4 
+ and not hid_div_bull_5 and not hid_div_bull_6 and not hid_div_bull_7 and not hid_div_bull_8
+    line1 = line.new(bar_index[hbl_2], rsi[hbl_2], bar_index[hbl2], rsi[hbl2], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.white)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not (choice == "RSI" ? pl : rl) ? line1 : na)
+    
+hbl3 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and hid_div_bull_3 and rsi[i] == (choice == "RSI" ? rsil3_ : rsil3)                                         
+        break    
+    hbl3 := hbl3 + 1 
+hbl_3 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and hid_div_bull_3 and rsi[i] == (choice == "RSI" ? rsil0_ : rsil0)                                                       
+        break    
+    hbl_3 := hbl_3 + 1 
+
+if Period and show_hiddiv and hid_div_bull_3 and not hid_div_bull_4 and not hid_div_bull_5 
+ and not hid_div_bull_6 and not hid_div_bull_7 and not hid_div_bull_8
+    line1 = line.new(bar_index[hbl_3], rsi[hbl_3], bar_index[hbl3], rsi[hbl3], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.white)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not (choice == "RSI" ? pl : rl) ? line1 : na)    
+    
+hbl4 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and hid_div_bull_4 and rsi[i] == (choice == "RSI" ? rsil4_ : rsil4)                                         
+        break    
+    hbl4 := hbl4 + 1 
+hbl_4 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and hid_div_bull_4 and rsi[i] == (choice == "RSI" ? rsil0_ : rsil0)                                                       
+        break    
+    hbl_4 := hbl_4 + 1 
+
+if Period and show_hiddiv and hid_div_bull_4 and not hid_div_bull_5 and not hid_div_bull_6 
+ and not hid_div_bull_7 and not hid_div_bull_8
+    line1 = line.new(bar_index[hbl_4], rsi[hbl_4], bar_index[hbl4], rsi[hbl4], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.white)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not (choice == "RSI" ? pl : rl) ? line1 : na)  
+    
+hbl5 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and hid_div_bull_5 and rsi[i] == (choice == "RSI" ? rsil5_ : rsil5)                                        
+        break    
+    hbl5 := hbl5 + 1 
+hbl_5 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and hid_div_bull_5 and rsi[i] == (choice == "RSI" ? rsil0_ : rsil0)                                                       
+        break    
+    hbl_5 := hbl_5 + 1 
+
+if Period and show_hiddiv and hid_div_bull_5 and not hid_div_bull_6 and not hid_div_bull_7 
+ and not hid_div_bull_8
+    line1 = line.new(bar_index[hbl_5], rsi[hbl_5], bar_index[hbl5], rsi[hbl5], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.white)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not (choice == "RSI" ? pl : rl) ? line1 : na)    
+    
+hbl6 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and hid_div_bull_6 and rsi[i] == (choice == "RSI" ? rsil6_ : rsil6)                                         
+        break    
+    hbl6 := hbl6 + 1 
+hbl_6 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and hid_div_bull_6 and rsi[i] == (choice == "RSI" ? rsil0_ : rsil0)                                                       
+        break    
+    hbl_6 := hbl_6 + 1 
+
+if Period and show_hiddiv and hid_div_bull_6 and not hid_div_bull_7 and not hid_div_bull_8
+    line1 = line.new(bar_index[hbl_6], rsi[hbl_6], bar_index[hbl6], rsi[hbl6], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.white)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not (choice == "RSI" ? pl : rl) ? line1 : na)    
+
+    
+hbl7 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and hid_div_bull_7 and rsi[i] == (choice == "RSI" ? rsil7_ : na)                                         
+        break    
+    hbl7 := hbl7 + 1 
+hbl_7 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and hid_div_bull_7 and rsi[i] == (choice == "RSI" ? rsil0_ : na)                                                       
+        break    
+    hbl_7 := hbl_7 + 1 
+
+if Period and show_hiddiv and hid_div_bull_7 and not hid_div_bull_8
+    line1 = line.new(bar_index[hbl_7], rsi[hbl_7], bar_index[hbl7], rsi[hbl7], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.yellow)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not pl ? line1 : na)  
+    
+hbl8 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and hid_div_bull_8 and rsi[i] == (choice == "RSI" ? rsil8_ : na)                                         
+        break    
+    hbl8 := hbl8 + 1 
+hbl_8 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and hid_div_bull_8 and rsi[i] == (choice == "RSI" ? rsil0_ : na)                                                       
+        break    
+    hbl_8 := hbl_8 + 1 
+
+if Period and show_hiddiv and hid_div_bull_8
+    line1 = line.new(bar_index[hbl_8], rsi[hbl_8], bar_index[hbl8], rsi[hbl8], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.yellow)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not pl ? line1 : na)  
+    
+hblx = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and hid_div_bull_x and rsi[i] == rsilx                                         
+        break    
+    hblx := hblx + 1 
+hbl_x = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and hid_div_bull_x and rsi[i] == rsil0                                                      
+        break    
+    hbl_x := hbl_x + 1 
+
+if Period and show_hiddiv and hid_div_bull_x
+    line1 = line.new(bar_index[hbl_x], rsi[hbl_x], bar_index[hblx], rsi[hblx], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.yellow)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not rl ? line1 : na)    
+    
+    
+// Hidden Bearish Divergences = close LH - RSI HH
+
+hbr1 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and hid_div_bear_1 and rsi[i] == (choice == "RSI" ? rsih1_ : rsih1)                                         
+        break    
+    hbr1 := hbr1 + 1
+hbr_1 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and hid_div_bear_1 and rsi[i] == (choice == "RSI" ? rsih0_ : rsih0)                                                     
+        break    
+    hbr_1 := hbr_1 + 1
+
+if Period and show_hiddiv and hid_div_bear_1 and not hid_div_bear_2 and not hid_div_bear_3 
+ and not hid_div_bear_4 and not hid_div_bear_5 and not hid_div_bear_6 and not hid_div_bear_7 
+ and not hid_div_bear_8 
+    line1 = line.new(bar_index[hbr_1], rsi[hbr_1], bar_index[hbr1], rsi[hbr1], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.white)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not (choice == "RSI" ? ph : rh) ? line1 : na)
+
+hbr2 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and hid_div_bear_2 and rsi[i] == (choice == "RSI" ? rsih2_ : rsih2)                                        
+        break    
+    hbr2 := hbr2 + 1
+hbr_2 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and hid_div_bear_2 and rsi[i] == (choice == "RSI" ? rsih0_ : rsih0)                                                     
+        break    
+    hbr_2 := hbr_2 + 1
+
+if Period and show_hiddiv and hid_div_bear_2 and not hid_div_bear_3 and not hid_div_bear_4 
+ and not hid_div_bear_5 and not hid_div_bear_6 and not hid_div_bear_7 and not hid_div_bear_8
+    line1 = line.new(bar_index[hbr_2], rsi[hbr_2], bar_index[hbr2], rsi[hbr2], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.white)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not (choice == "RSI" ? ph : rh) ? line1 : na)  
+    
+hbr3 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and hid_div_bear_3 and rsi[i] == (choice == "RSI" ? rsih3_ : rsih3)                                       
+        break    
+    hbr3 := hbr3 + 1
+hbr_3 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and hid_div_bear_3 and rsi[i] == (choice == "RSI" ? rsih0_ : rsih0)                                                     
+        break    
+    hbr_3 := hbr_3 + 1
+
+if Period and show_hiddiv and hid_div_bear_3 and not hid_div_bear_4 and not hid_div_bear_5 
+ and not hid_div_bear_6 and not hid_div_bear_7 and not hid_div_bear_8
+    line1 = line.new(bar_index[hbr_3], rsi[hbr_3], bar_index[hbr3], rsi[hbr3], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.white)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not (choice == "RSI" ? ph : rh) ? line1 : na)      
+    
+hbr4 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and hid_div_bear_4 and rsi[i] == (choice == "RSI" ? rsih4_ : rsih4)                                       
+        break    
+    hbr4 := hbr4 + 1
+hbr_4 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and hid_div_bear_4 and rsi[i] == (choice == "RSI" ? rsih0_ : rsih0)                                                     
+        break    
+    hbr_4 := hbr_4 + 1
+
+if Period and show_hiddiv and hid_div_bear_4 and not hid_div_bear_5 and not hid_div_bear_6 
+ and not hid_div_bear_7 and not hid_div_bear_8
+    line1 = line.new(bar_index[hbr_4], rsi[hbr_4], bar_index[hbr4], rsi[hbr4], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.white)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not (choice == "RSI" ? ph : rh) ? line1 : na)      
+    
+hbr5 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and hid_div_bear_5 and rsi[i] == (choice == "RSI" ? rsih5_ : rsih5)                                       
+        break    
+    hbr5 := hbr5 + 1
+hbr_5 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and hid_div_bear_5 and rsi[i] == (choice == "RSI" ? rsih0_ : rsih0)                                                     
+        break    
+    hbr_5 := hbr_5 + 1
+
+if Period and show_hiddiv and hid_div_bear_5 and not hid_div_bear_6 and not hid_div_bear_7 
+ and not hid_div_bear_8
+    line1 = line.new(bar_index[hbr_5], rsi[hbr_5], bar_index[hbr5], rsi[hbr5], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.white)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not (choice == "RSI" ? ph : rh) ? line1 : na)      
+    
+hbr6 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and hid_div_bear_6 and rsi[i] == (choice == "RSI" ? rsih6_ : rsih6)                                        
+        break    
+    hbr6 := hbr6 + 1
+hbr_6 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and hid_div_bear_6 and rsi[i] == (choice == "RSI" ? rsih0_ : rsih0)                                                     
+        break    
+    hbr_6 := hbr_6 + 1
+
+if Period and show_hiddiv and hid_div_bear_6 and not hid_div_bear_7 and not hid_div_bear_8
+    line1 = line.new(bar_index[hbr_6], rsi[hbr_6], bar_index[hbr6], rsi[hbr6], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.white)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not (choice == "RSI" ? ph : rh) ? line1 : na)      
+
+hbr7 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and hid_div_bear_7 and rsi[i] == (choice == "RSI" ? rsih7_ : na)                                        
+        break    
+    hbr7 := hbr7 + 1
+hbr_7 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and hid_div_bear_7 and rsi[i] == (choice == "RSI" ? rsih0_ : na)                                                     
+        break    
+    hbr_7 := hbr_7 + 1
+
+if Period and show_hiddiv and hid_div_bear_7 and not hid_div_bear_8
+    line1 = line.new(bar_index[hbr_7], rsi[hbr_7], bar_index[hbr7], rsi[hbr7], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.yellow)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not ph ? line1 : na)      
+  
+hbr8 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and hid_div_bear_8 and rsi[i] == (choice == "RSI" ? rsih8_ : na)                                        
+        break    
+    hbr8 := hbr8 + 1
+hbr_8 = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and hid_div_bear_8 and rsi[i] == (choice == "RSI" ? rsih0_ : na)                                                     
+        break    
+    hbr_8 := hbr_8 + 1
+
+if Period and show_hiddiv and hid_div_bear_8
+    line1 = line.new(bar_index[hbr_8], rsi[hbr_8], bar_index[hbr8], rsi[hbr8], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.yellow)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not ph ? line1 : na)      
+        
+hbrx = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and hid_div_bear_x and rsi[i] == rsihx                                      
+        break    
+    hbrx := hbrx + 1
+hbr_x = 0                                                                        
+for i = 0 to 200                                                                
+    if Period and hid_div_bear_x and rsi[i] == rsih0                                                     
+        break    
+    hbr_x := hbr_x + 1
+
+if Period and show_hiddiv and hid_div_bear_x 
+    line1 = line.new(bar_index[hbr_x], rsi[hbr_x], bar_index[hbrx], rsi[hbrx], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.yellow)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not rh ? line1 : na)   
