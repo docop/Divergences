@@ -1,0 +1,1017 @@
+//@version=4
+// This source code is subject to the terms of the Creative Commons Zero v1.0 Universal license
+// https://github.com/fikira12/Divergences
+// Copyright (c) 2019 @fikira
+
+study(title="[fikira] MACD + Divergences", shorttitle="MACD + DIV", max_bars_back=1000)
+
+Pick = input(false, title="-<><><><><><>[Pick Your Poison]<><><><><><>-")
+
+input = input("macd", options=["macd", "signal", "hist"], title="Source Divergences")
+
+ST = input(false, title="-<><><><><><>[Calculation Period]<><><><><><>-")
+
+// Because the script is heavy in calculation it is limited in time
+// (= inspired from a script of "Che_Trader") 
+_Year = input(2019, "Start calculation (Year)")
+_Month = input(1, "Start calculation (Month)")
+_Start = timestamp(_Year, _Month, 1, 1, 1)
+//_Start = timeframe.isintraday ? timestamp(year, month, dayofweek, 0, 0) : timestamp(_Year, _Month, _Day, 0, 0)
+Year_ = input(2099, "Stop calculation (Year)")
+Stop_ = timestamp(Year_, 12, 31, 23, 59)
+Period = time >= _Start and time <= Stop_ ? true : false
+
+// MACD
+
+MACD = input(false, title="-<><><><><><>[MACD]<><><><><><>-")
+
+fast_length = input(title="MACD Fast Length", type=input.integer, defval=12)
+slow_length = input(title="MACD Slow Length", type=input.integer, defval=26)
+src = input(title="MACD Source", type=input.source, defval=close)
+signal_length = input(title="Signal Smoothing", type=input.integer, minval = 1, maxval = 50, defval = 9)
+sma_source = input(title="SMA(Oscillator) instead of EMA ?", type=input.bool, defval=false)
+sma_signal = input(title="SMA(Signal Line) instead of EMA ?", type=input.bool, defval=false)
+
+// Plot colors
+col_grow_above = #26A69A
+col_grow_below = #FFCDD2
+col_fall_above = #B2DFDB 
+col_fall_below = #EF5350 
+col_macd = #0094ff 
+col_signal = #ff6a00 
+
+// Calculating
+fast_ma = sma_source ? sma(src, fast_length) : ema(src, fast_length)
+slow_ma = sma_source ? sma(src, slow_length) : ema(src, slow_length)
+macd = fast_ma - slow_ma
+signal = sma_signal ? sma(macd, signal_length) : ema(macd, signal_length)
+hist = macd - signal
+
+plot(hist, title="Histogram", style=plot.style_columns, color=(hist>=0 ? (hist[1] < hist ? col_grow_above : col_fall_above) : (hist[1] < hist ? col_grow_below : col_fall_below) ), transp=30 )
+plot(macd, title="MACD", color=col_macd, linewidth=2, transp=0)
+plot(signal, title="Signal", color=col_signal, linewidth=2, transp=0)
+plot(crossunder(macd, signal) ? signal : na, color=col_signal, style = plot.style_cross, linewidth = 2, transp = 0, title="X MACD under signal")
+plot(crossover(macd, signal) ? signal : na, color=col_macd, style = plot.style_cross, linewidth = 2, transp = 0, title="X MACD over signal")
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+DIV = input(false, title="-<><><><><><>[Divergences]<><><><><><>-")
+
+nwh = close > open ? close : close < open ? open : na 
+nwl = close > open ? open : close < open ? close : na 
+
+show_div = input(true, title="Show Regular Divergences")
+show_hiddiv = input(true, title="Show Hidden Divergences")
+
+arrows = input(true, title="Just Show Arrows (No Lines)")
+
+dot = input(title="[Divergences] Line Type", defval="dotted", options=["solid", "dashed", "dotted"]) 
+lw = input(2, minval=0, maxval=10, title="[Divergences] linewidth")
+
+_dot = line.style_dotted
+if dot == "solid"
+    _dot := line.style_solid
+else
+    if dot == "dashed"
+        _dot := line.style_dashed
+    else
+        if dot == "dotted"
+            _dot := line.style_dotted
+
+//solid = input(title="Line Type [Connections]", defval="solid", options=["solid", "dashed", "dotted"]) 
+//_solid = line.style_solid
+//if solid == "solid"
+//    _solid := line.style_solid
+//else
+//    if solid == "dashed"
+//        _solid := line.style_dashed
+//    else
+//        if solid == "dotted"
+//            _solid := line.style_dotted
+
+Bars = input(false, title="-<><><><><><>[LeftBars   RightBars]<><><><><><>-")
+
+LB = input(5, title = "LeftBars")                      
+RB = input(0, title = "RightBars") 
+
+_x = input(false, title="Custom Div Period?")
+x = _x ? input(7, minval=7, title="Custom Div Period:") : na
+
+rsi = 0.0
+if Period and input == "macd"
+    rsi := macd 
+else
+    if Period and input == "signal"
+        rsi := signal
+    else
+        if Period and input == "hist"
+            rsi := hist
+
+ph = Period ? pivothigh(nwh, LB, RB) : na
+pl = Period ? pivotlow(nwl, LB, RB) : na
+rh = Period and macd <= macd[1] and macd[1] >= macd[2] ? pivothigh(rsi, LB, RB) : na    
+rl = Period and macd >= macd[1] and macd[1] <= macd[2] ? pivotlow(rsi, LB, RB) : na
+
+//plot(rl, color=color.lime, linewidth=2, offset=-1)
+//plot(rh, color=color.red, linewidth=2, offset=-1)
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+rsih0 = Period ? valuewhen(rh, rsi[1], 0) : na                                        
+rsil0 = Period ? valuewhen(rl, rsi[1], 0) : na                                         
+hh0 = Period and rsih0 ? valuewhen(rh, nwh[1], 0) : na
+ll0 = Period and rsil0 ? valuewhen(rl, nwl[1], 0) : na
+
+rsih1 = Period ? valuewhen(rh, rsi[1], 1) : na                                       
+rsil1 = Period ? valuewhen(rl, rsi[1], 1) : na                                         
+hh1 = Period and rsih1 ? valuewhen(rh, nwh[1], 1) : na
+ll1 = Period and rsil1 ? valuewhen(rl, nwl[1], 1) : na
+
+rsih2 = Period ? valuewhen(rh, rsi[1], 2) : na                                       
+rsil2 = Period ? valuewhen(rl, rsi[1], 2) : na                                         
+hh2 = Period and rsih2 ? valuewhen(rh, nwh[1], 2) : na
+ll2 = Period and rsil2 ? valuewhen(rl, nwl[1], 2) : na
+
+rsih3 = Period ? valuewhen(rh, rsi[1], 3) : na                                       
+rsil3 = Period ? valuewhen(rl, rsi[1], 3) : na                                         
+hh3 = Period and rsih3 ? valuewhen(rh, nwh[1], 3) : na
+ll3 = Period and rsil3 ? valuewhen(rl, nwl[1], 3) : na
+
+rsih4 = Period ? valuewhen(rh, rsi[1], 4) : na                                       
+rsil4 = Period ? valuewhen(rl, rsi[1], 4) : na                                         
+hh4 = Period and rsih4 ? valuewhen(rh, nwh[1], 4) : na
+ll4 = Period and rsil4 ? valuewhen(rl, nwl[1], 4) : na
+
+rsih5 = Period ? valuewhen(rh, rsi[1], 5) : na                                       
+rsil5 = Period ? valuewhen(rl, rsi[1], 5) : na                                         
+hh5 = Period and rsih5 ? valuewhen(rh, nwh[1], 5) : na
+ll5 = Period and rsil5 ? valuewhen(rl, nwl[1], 5) : na
+
+rsih6 = Period ? valuewhen(rh, rsi[1], 6) : na                                       
+rsil6 = Period ? valuewhen(rl, rsi[1], 6) : na                                         
+hh6 = Period and rsih6 ? valuewhen(rh, nwh[1], 6) : na
+ll6 = Period and rsil6 ? valuewhen(rl, nwl[1], 6) : na
+
+rsihx = Period ? valuewhen(rh, rsi[1], x) : na                                        
+rsilx = Period ? valuewhen(rl, rsi[1], x) : na                                        
+hhx = Period and rsihx ? valuewhen(rh, nwh[1], x) : na
+llx = Period and rsilx ? valuewhen(rl, nwl[1], x) : na
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////// Bullish Divergences = close LL - RSI HL /////////////////////////////
+
+rsi_HL1 = rsil0 > rsil1
+close_LL1 = ll0 < ll1
+
+rsi_HL2 = rsil0 > rsil2
+ and rsil1 > (rsil2 + ((rsil0 - rsil2) / 2))
+close_LL2 = ll0 < ll2 
+
+rsi_HL3 = rsil0 > rsil3 
+ and rsil1 > (rsil3 + ((rsil0 - rsil3) / 2))
+ and rsil2 > (rsil3 + ((rsil0 - rsil3) / 2))
+close_LL3 = ll0 < ll3 
+
+rsi_HL4 = rsil0 > rsil4 
+ and rsil1 > (rsil4 + ((rsil0 - rsil4) / 2))
+ and rsil2 > (rsil4 + ((rsil0 - rsil4) / 2))
+ and rsil3 > (rsil4 + ((rsil0 - rsil4) / 2))
+close_LL4 = ll0 < ll4 
+
+rsi_HL5 = rsil0 > rsil5 
+ and rsil1 > (rsil5 + ((rsil0 - rsil5) / 2))
+ and rsil2 > (rsil5 + ((rsil0 - rsil5) / 2)) 
+ and rsil3 > (rsil5 + ((rsil0 - rsil5) / 2))
+ and rsil4 > (rsil5 + ((rsil0 - rsil5) / 2))
+close_LL5 = ll0 < ll5 
+
+rsi_HL6 = rsil0 > rsil6 
+ and rsil1 > (rsil6 + ((rsil0 - rsil6) / 2)) 
+ and rsil2 > (rsil6 + ((rsil0 - rsil6) / 2)) 
+ and rsil3 > (rsil6 + ((rsil0 - rsil6) / 2)) 
+ and rsil4 > (rsil6 + ((rsil0 - rsil6) / 2)) 
+ and rsil5 > (rsil6 + ((rsil0 - rsil6) / 2))
+close_LL6 = ll0 < ll6 
+
+rsi_HLx = rsil0 > rsilx 
+ and rsil1 > (rsilx + ((rsil0 - rsilx) / 2)) 
+ and rsil2 > (rsilx + ((rsil0 - rsilx) / 2)) 
+ and rsil3 > (rsilx + ((rsil0 - rsilx) / 2)) 
+ and rsil4 > (rsilx + ((rsil0 - rsilx) / 2)) 
+ and rsil5 > (rsilx + ((rsil0 - rsilx) / 2)) 
+ and rsil6 > (rsilx + ((rsil0 - rsilx) / 2))
+close_LLx = ll0 < llx
+
+div_bull_1 = close_LL1 and rsi_HL1
+div_bull_2 = close_LL2 and rsi_HL2
+div_bull_3 = close_LL3 and rsi_HL3
+div_bull_4 = close_LL4 and rsi_HL4
+div_bull_5 = close_LL5 and rsi_HL5
+div_bull_6 = close_LL6 and rsi_HL6
+div_bull_x = close_LLx and rsi_HLx
+
+////////// Bearish Divergences = close HH - RSI LH /////////////////////////////
+
+rsi_LH1 = rsih0 < rsih1
+close_HH1 = hh0 > hh1
+
+rsi_LH2 = rsih0 < rsih2 
+ and rsih1 < (rsih2 - ((rsih2 - rsih0) / 2)) 
+close_HH2 = hh0 > hh2 
+
+rsi_LH3 = rsih0 < rsih3 
+ and rsih1 < (rsih3 - ((rsih3 - rsih0) / 2))  
+ and rsih2 < (rsih3 - ((rsih3 - rsih0) / 2))  
+close_HH3 = hh0 > hh3 
+
+rsi_LH4 = rsih0 < rsih4 
+ and rsih1 < (rsih4 - ((rsih4 - rsih0) / 2))   
+ and rsih2 < (rsih4 - ((rsih4 - rsih0) / 2))  
+ and rsih3 < (rsih4 - ((rsih4 - rsih0) / 2)) 
+close_HH4 = hh0 > hh4 
+
+rsi_LH5 = rsih0 < rsih5 
+ and rsih1 < (rsih5 - ((rsih5 - rsih0) / 2))  
+ and rsih2 < (rsih5 - ((rsih5 - rsih0) / 2))  
+ and rsih3 < (rsih5 - ((rsih5 - rsih0) / 2))  
+ and rsih4 < (rsih5 - ((rsih5 - rsih0) / 2)) 
+close_HH5 = hh0 > hh5 
+
+rsi_LH6 = rsih0 < rsih6 
+ and rsih1 < (rsih6 - ((rsih6 - rsih0) / 2))  
+ and rsih2 < (rsih6 - ((rsih6 - rsih0) / 2))   
+ and rsih3 < (rsih6 - ((rsih6 - rsih0) / 2))   
+ and rsih4 < (rsih6 - ((rsih6 - rsih0) / 2))   
+ and rsih5 < (rsih6 - ((rsih6 - rsih0) / 2))  
+close_HH6 = hh0 > hh6 
+
+rsi_LHx = rsih0 < rsihx
+ and rsih1 < (rsihx - ((rsihx - rsih0) / 2))   
+ and rsih2 < (rsihx - ((rsihx - rsih0) / 2))  
+ and rsih3 < (rsihx - ((rsihx - rsih0) / 2))  
+ and rsih4 < (rsihx - ((rsihx - rsih0) / 2))  
+ and rsih5 < (rsihx - ((rsihx - rsih0) / 2))  
+ and rsih6 < (rsihx - ((rsihx - rsih0) / 2)) 
+close_HHx = hh0 > hhx
+ 
+div_bear_1 = close_HH1 and rsi_LH1
+div_bear_2 = close_HH2 and rsi_LH2
+div_bear_3 = close_HH3 and rsi_LH3
+div_bear_4 = close_HH4 and rsi_LH4
+div_bear_5 = close_HH5 and rsi_LH5
+div_bear_6 = close_HH6 and rsi_LH6
+div_bear_x = close_HHx and rsi_LHx
+
+////////// Hidden Bullish Divergences = close HL - RSI LL //////////////////////
+
+rsi_LL1 = rsil0 < rsil1
+close_HL1 = ll0 > ll1
+
+rsi_LL2 = rsil0 < rsil2 
+ and rsil1 > (rsil2 + ((rsil2 - rsil0) / 2)) 
+close_HL2 = ll0 > ll2 
+
+rsi_LL3 = rsil0 < rsil3 
+ and rsil1 > (rsil3 + ((rsil3 - rsil0) / 2))  
+ and rsil2 > (rsil3 + ((rsil3 - rsil0) / 2))  
+close_HL3 = ll0 > ll3 
+
+rsi_LL4 = rsil0 < rsil4 
+ and rsil1 > (rsil4 + ((rsil4 - rsil0) / 2))   
+ and rsil2 > (rsil4 + ((rsil4 - rsil0) / 2))  
+ and rsil3 > (rsil4 + ((rsil4 - rsil0) / 2)) 
+close_HL4 = ll0 > ll4 
+
+rsi_LL5 = rsil0 < rsil5 
+ and rsil1 > (rsil5 + ((rsil5 - rsil0) / 2))  
+ and rsil2 > (rsil5 + ((rsil5 - rsil0) / 2))  
+ and rsil3 > (rsil5 + ((rsil5 - rsil0) / 2))  
+ and rsil4 > (rsil5 + ((rsil5 - rsil0) / 2)) 
+close_HL5 = ll0 > ll5 
+
+rsi_LL6 = rsil0 < rsil6 
+ and rsil1 > (rsil6 + ((rsil6 - rsil0) / 2))  
+ and rsil2 > (rsil6 + ((rsil6 - rsil0) / 2))   
+ and rsil3 > (rsil6 + ((rsil6 - rsil0) / 2))   
+ and rsil4 > (rsil6 + ((rsil6 - rsil0) / 2))   
+ and rsil5 > (rsil6 + ((rsil6 - rsil0) / 2))  
+close_HL6 = ll0 > ll6 
+
+rsi_LLx = rsil0 < rsilx 
+ and rsil1 > (rsilx + ((rsilx - rsil0) / 2))   
+ and rsil2 > (rsilx + ((rsilx - rsil0) / 2))    
+ and rsil3 > (rsilx + ((rsilx - rsil0) / 2))    
+ and rsil4 > (rsilx + ((rsilx - rsil0) / 2))    
+ and rsil5 > (rsilx + ((rsilx - rsil0) / 2))    
+ and rsil6 > (rsilx + ((rsilx - rsil0) / 2))   
+close_HLx = ll0 > llx
+
+hid_div_bull_1 = close_HL1 and rsi_LL1
+hid_div_bull_2 = close_HL2 and rsi_LL2
+hid_div_bull_3 = close_HL3 and rsi_LL3
+hid_div_bull_4 = close_HL4 and rsi_LL4
+hid_div_bull_5 = close_HL5 and rsi_LL5
+hid_div_bull_6 = close_HL6 and rsi_LL6
+hid_div_bull_x = close_HLx and rsi_LLx
+
+////////// Hidden Bearish Divergences = close LH - RSI HH  //////////////////////
+
+rsi_HH1 = rsih0 > rsih1
+close_LH1 = hh0 < hh1
+
+rsi_HH2 = rsih0 > rsih2 
+ and rsih1 < (rsih2 + ((rsih0 - rsih2) / 2))  
+close_LH2 = hh0 < hh2 
+
+rsi_HH3 = rsih0 > rsih3 
+ and rsih1 < (rsih3 + ((rsih0 - rsih3) / 2))  
+ and rsih2 < (rsih3 + ((rsih0 - rsih3) / 2))
+close_LH3 = hh0 < hh3 
+
+rsi_HH4 = rsih0 > rsih4 
+ and rsih1 < (rsih4 + ((rsih0 - rsih4) / 2)) 
+ and rsih2 < (rsih4 + ((rsih0 - rsih4) / 2)) 
+ and rsih3 < (rsih4 + ((rsih0 - rsih4) / 2))
+close_LH4 = hh0 < hh4 
+
+rsi_HH5 = rsih0 > rsih5 
+ and rsih1 < (rsih5 + ((rsih0 - rsih5) / 2)) 
+ and rsih2 < (rsih5 + ((rsih0 - rsih5) / 2))  
+ and rsih3 < (rsih5 + ((rsih0 - rsih5) / 2))  
+ and rsih4 < (rsih5 + ((rsih0 - rsih5) / 2)) 
+close_LH5 = hh0 < hh5 
+
+rsi_HH6 = rsih0 > rsih6 
+ and rsih1 < (rsih6 + ((rsih0 - rsih6) / 2))  
+ and rsih2 < (rsih6 + ((rsih0 - rsih6) / 2))   
+ and rsih3 < (rsih6 + ((rsih0 - rsih6) / 2))   
+ and rsih4 < (rsih6 + ((rsih0 - rsih6) / 2))   
+ and rsih5 < (rsih6 + ((rsih0 - rsih6) / 2))  
+close_LH6 = hh0 < hh6 
+
+rsi_HHx = rsih0 > rsihx
+ and rsih1 < (rsihx + ((rsih0 - rsihx) / 2))   
+ and rsih2 < (rsihx + ((rsih0 - rsihx) / 2))  
+ and rsih3 < (rsihx + ((rsih0 - rsihx) / 2))  
+ and rsih4 < (rsihx + ((rsih0 - rsihx) / 2))  
+ and rsih5 < (rsihx + ((rsih0 - rsihx) / 2))  
+ and rsih6 < (rsihx + ((rsih0 - rsihx) / 2)) 
+close_LHx = hh0 < hhx
+
+hid_div_bear_1 = close_LH1 and rsi_HH1
+hid_div_bear_2 = close_LH2 and rsi_HH2
+hid_div_bear_3 = close_LH3 and rsi_HH3
+hid_div_bear_4 = close_LH4 and rsi_HH4
+hid_div_bear_5 = close_LH5 and rsi_HH5
+hid_div_bear_6 = close_LH6 and rsi_HH6
+hid_div_bear_x = close_LHx and rsi_HHx
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+plotchar(arrows and div_bull_1 and not div_bull_1[1] and show_div, char="↑︎︎", title="Bull Div 1",
+ location=location.bottom, color= color.green, size=size.tiny, transp=20, offset=-1)
+plotchar(arrows and div_bull_2 and not div_bull_2[1] and show_div, char="↑︎︎", title="Bull Div 2",
+ location=location.bottom, color= color.green, size=size.tiny, transp=20, offset=-1)
+plotchar(arrows and div_bull_3 and not div_bull_3[1] and show_div, char="↑︎︎", title="Bull Div 3",
+ location=location.bottom, color= color.green, size=size.tiny, transp=20, offset=-1)
+plotchar(arrows and div_bull_4 and not div_bull_4[1] and show_div, char="↑︎︎", title="Bull Div 4",
+ location=location.bottom, color= color.lime, size=size.tiny, transp=0, offset=-1)
+plotchar(arrows and div_bull_5 and not div_bull_5[1] and show_div, char="↑︎︎", title="Bull Div 5",
+ location=location.bottom, color= color.lime, size=size.tiny, transp=0, offset=-1)
+plotchar(arrows and div_bull_6 and not div_bull_6[1] and show_div, char="↑︎︎", title="Bull Div 6",
+ location=location.bottom, color= color.lime, size=size.tiny, transp=0, offset=-1)
+plotchar(arrows and div_bull_x and not div_bull_x[1] and show_div, char="↑︎︎", title="Bull Div x",
+ location=location.bottom, color= color.aqua, size=size.tiny, transp=0, offset=-1)
+
+plotchar(arrows and div_bear_1 and not div_bear_1[1] and show_div, char="↓︎︎", title="Bear Div 1",
+ location=location.top, color= color.orange, size=size.tiny, transp=20, offset=-1)
+plotchar(arrows and div_bear_2 and not div_bear_2[1] and show_div, char="↓︎︎", title="Bear Div 2",
+ location=location.top, color= color.orange, size=size.tiny, transp=20, offset=-1)
+plotchar(arrows and div_bear_3 and not div_bear_3[1] and show_div, char="↓︎︎", title="Bear Div 3",
+ location=location.top, color= color.orange, size=size.tiny, transp=20, offset=-1)
+plotchar(arrows and div_bear_4 and not div_bear_4[1] and show_div, char="↓︎︎", title="Bear Div 4",
+ location=location.top, color= color.red, size=size.tiny, transp=0, offset=-1)
+plotchar(arrows and div_bear_5 and not div_bear_5[1] and show_div, char="↓︎︎", title="Bear Div 5",
+ location=location.top, color= color.red, size=size.tiny, transp=0, offset=-1)
+plotchar(arrows and div_bear_6 and not div_bear_6[1] and show_div, char="↓︎︎", title="Bear Div 6",
+ location=location.top, color= color.red, size=size.tiny, transp=0, offset=-1)
+plotchar(arrows and div_bear_x and not div_bear_x[1] and show_div, char="↓︎︎", title="Bear Div x",
+ location=location.top, color= color.purple, size=size.tiny, transp=0, offset=-1)
+
+plotchar(arrows and hid_div_bull_1 and not hid_div_bull_1[1] and show_hiddiv, char="↑︎︎", title="Hidden Bull Div 1",
+ location=location.bottom, color= color.white, size=size.tiny, transp=20, offset=-1)
+plotchar(arrows and hid_div_bull_2 and not hid_div_bull_2[1] and show_hiddiv, char="↑︎︎", title="Hidden Bull Div 2",
+ location=location.bottom, color= color.white, size=size.tiny, transp=20, offset=-1)
+plotchar(arrows and hid_div_bull_3 and not hid_div_bull_3[1] and show_hiddiv, char="↑︎︎", title="Hidden Bull Div 3",
+ location=location.bottom, color= color.white, size=size.tiny, transp=20, offset=-1)
+plotchar(arrows and hid_div_bull_4 and not hid_div_bull_4[1] and show_hiddiv, char="↑︎︎", title="Hidden Bull Div 4",
+ location=location.bottom, color= color.white, size=size.tiny, transp=0, offset=-1)
+plotchar(arrows and hid_div_bull_5 and not hid_div_bull_5[1] and show_hiddiv, char="↑︎︎", title="Hidden Bull Div 5",
+ location=location.bottom, color= color.white, size=size.tiny, transp=0, offset=-1)
+plotchar(arrows and hid_div_bull_6 and not hid_div_bull_6[1] and show_hiddiv, char="↑︎︎", title="Hidden Bull Div 6",
+ location=location.bottom, color= color.white, size=size.tiny, transp=0, offset=-1)
+plotchar(arrows and hid_div_bull_x and not hid_div_bull_x[1] and show_hiddiv, char="↑︎︎", title="Hidden Bull Div x",
+ location=location.bottom, color= color.yellow, size=size.tiny, transp=0, offset=-1)
+
+plotchar(arrows and hid_div_bear_1 and not hid_div_bear_1[1] and show_hiddiv, char="↓︎", title="Hidden Bear Div 1",
+ location=location.top, color= color.white, size=size.tiny, transp=20, offset=-1)
+plotchar(arrows and hid_div_bear_2 and not hid_div_bear_2[1] and show_hiddiv, char="↓︎︎", title="Hidden Bear Div 2",
+ location=location.top, color= color.white, size=size.tiny, transp=20, offset=-1)
+plotchar(arrows and hid_div_bear_3 and not hid_div_bear_3[1] and show_hiddiv, char="↓︎︎", title="Hidden Bear Div 3",
+ location=location.top, color= color.white, size=size.tiny, transp=20, offset=-1) 
+plotchar(arrows and hid_div_bear_4 and not hid_div_bear_4[1] and show_hiddiv, char="↓︎︎", title="Hidden Bear Div 4",
+ location=location.top, color= color.white, size=size.tiny, transp=0, offset=-1) 
+plotchar(arrows and hid_div_bear_5 and not hid_div_bear_5[1] and show_hiddiv, char="↓︎︎", title="Hidden Bear Div 5",
+ location=location.top, color= color.white, size=size.tiny, transp=0, offset=-1) 
+plotchar(arrows and hid_div_bear_6 and not hid_div_bear_6[1] and show_hiddiv, char="↓︎︎", title="Hidden Bear Div 6",
+ location=location.top, color= color.white, size=size.tiny, transp=0, offset=-1) 
+plotchar(arrows and hid_div_bear_x and not hid_div_bear_x[1] and show_hiddiv, char="↓︎︎", title="Hidden Bear Div x",
+ location=location.top, color= color.yellow, size=size.tiny, transp=0, offset=-1) 
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Bullish Divergences = close LL - RSI HL
+ 
+bl1 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and div_bull_1 and rsi[i] == rsil1
+        break    
+    bl1 := bl1 + 1 
+bl_1 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and div_bull_1 and rsi[i] == rsil0                                                      
+        break    
+    bl_1 := bl_1 + 1 
+
+if not arrows and Period and show_div and div_bull_1 and not div_bull_2 and not div_bull_3 
+ and not div_bull_4 and not div_bull_5 and not div_bull_6
+    line1 = line.new(bar_index[bl_1], rsi[bl_1], bar_index[bl1], rsi[bl1], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.green)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not rl ? line1 : na)
+    label.new(bar_index[bl_1], rsi[bl_1], xloc = xloc.bar_index, yloc=yloc.price, 
+     style=label.style_arrowup, color=color.green, size=size.tiny)
+     
+bl2 = 0                                                                       
+for i = 0 to 200                                                                
+    if not arrows and Period and div_bull_2 and rsi[i] == rsil2                                          
+        break    
+    bl2 := bl2 + 1 
+bl_2 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and div_bull_2 and rsi[i] == rsil0                                                     
+        break    
+    bl_2 := bl_2 + 1 
+
+if not arrows and Period and show_div and div_bull_2 and not div_bull_3 and not div_bull_4 
+ and not div_bull_5 and not div_bull_6
+    line1 = line.new(bar_index[bl_2], rsi[bl_2], bar_index[bl2], rsi[bl2], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.green)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not rl ? line1 : na)
+    label.new(bar_index[bl_2], rsi[bl_2], xloc = xloc.bar_index, yloc=yloc.price, 
+     style=label.style_arrowup, color=color.green, size=size.tiny)
+
+bl3 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and div_bull_3 and rsi[i] == rsil3                                          
+        break    
+    bl3 := bl3 + 1 
+bl_3 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and div_bull_3 and rsi[i] == rsil0                                                      
+        break    
+    bl_3 := bl_3 + 1 
+
+if not arrows and Period and show_div and div_bull_3 and not div_bull_4 and not div_bull_5 
+ and not div_bull_6
+    line1 = line.new(bar_index[bl_3], rsi[bl_3], bar_index[bl3], rsi[bl3], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.green)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not rl ? line1 : na)
+    label.new(bar_index[bl_3], rsi[bl_3], xloc = xloc.bar_index, yloc=yloc.price, 
+     style=label.style_arrowup, color=color.green, size=size.tiny)
+
+bl4 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and div_bull_4 and rsi[i] == rsil4                                           
+        break    
+    bl4 := bl4 + 1 
+bl_4 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and div_bull_4 and rsi[i] == rsil0                                                       
+        break    
+    bl_4 := bl_4 + 1 
+
+if not arrows and Period and show_div and div_bull_4 and not div_bull_5 and not div_bull_6 
+    line1 = line.new(bar_index[bl_4], rsi[bl_4], bar_index[bl4], rsi[bl4], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.lime)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not rl ? line1 : na)
+    label.new(bar_index[bl_4], rsi[bl_4], xloc = xloc.bar_index, yloc=yloc.price, 
+     style=label.style_arrowup, color=color.lime, size=size.tiny)
+
+bl5 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and div_bull_5 and rsi[i] == rsil5                                         
+        break    
+    bl5 := bl5 + 1 
+bl_5 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and div_bull_5 and rsi[i] == rsil0                                                      
+        break    
+    bl_5 := bl_5 + 1 
+
+if not arrows and Period and show_div and div_bull_5 and not div_bull_6 
+    line1 = line.new(bar_index[bl_5], rsi[bl_5], bar_index[bl5], rsi[bl5], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.lime)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not rl ? line1 : na)
+    label.new(bar_index[bl_5], rsi[bl_5], xloc = xloc.bar_index, yloc=yloc.price, 
+     style=label.style_arrowup, color=color.lime, size=size.tiny)
+
+bl6 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and div_bull_6 and rsi[i] == rsil6                                          
+        break    
+    bl6 := bl6 + 1 
+bl_6 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and div_bull_6 and rsi[i] == rsil0                                                      
+        break    
+    bl_6 := bl_6 + 1 
+
+if not arrows and Period and show_div and div_bull_6 
+    line1 = line.new(bar_index[bl_6], rsi[bl_6], bar_index[bl6], rsi[bl6], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.lime)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not rl ? line1 : na)
+    label.new(bar_index[bl_6], rsi[bl_6], xloc = xloc.bar_index, yloc=yloc.price, 
+     style=label.style_arrowup, color=color.lime, size=size.tiny)
+
+blx = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and div_bull_x and rsi[i] == rsilx                                        
+        break    
+    blx := blx + 1 
+bl_x = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and div_bull_x and rsi[i] == rsil0                                                      
+        break    
+    bl_x := bl_x + 1 
+
+if not arrows and Period and show_div and div_bull_x
+    line1 = line.new(bar_index[bl_x], rsi[bl_x], bar_index[blx], rsi[blx], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.aqua)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not rl ? line1 : na)
+    label.new(bar_index[bl_x], rsi[bl_x], xloc = xloc.bar_index, yloc=yloc.price, 
+     style=label.style_arrowup, color=color.aqua, size=size.tiny)
+    
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Bearish Divergences = close HH - RSI LH
+
+br1 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and div_bear_1 and rsi[i] == rsih1                                      
+        break    
+    br1 := br1 + 1 
+br_1 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and div_bear_1 and rsi[i] == rsih0                                                       
+        break    
+    br_1 := br_1 + 1 
+
+if not arrows and Period and show_div and div_bear_1 and not div_bear_2 and not div_bear_3 
+ and not div_bear_4 and not div_bear_5 and not div_bear_6
+    line1 = line.new(bar_index[br_1], rsi[br_1], bar_index[br1], rsi[br1], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.orange)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not rh ? line1 : na)
+    label.new(bar_index[br_1], rsi[br_1], xloc = xloc.bar_index, yloc=yloc.price, 
+     style=label.style_arrowdown, color=color.orange, size=size.tiny)
+
+br2 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and div_bear_2 and rsi[i] == rsih2                                            
+        break    
+    br2 := br2 + 1 
+br_2 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and div_bear_2 and rsi[i] == rsih0                                                      
+        break    
+    br_2 := br_2 + 1 
+
+if not arrows and Period and show_div and div_bear_2 and not div_bear_3 and not div_bear_4 
+ and not div_bear_5 and not div_bear_6 
+    line1 = line.new(bar_index[br_2], rsi[br_2], bar_index[br2], rsi[br2], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.orange)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not rh ? line1 : na)
+    label.new(bar_index[br_2], rsi[br_2], xloc = xloc.bar_index, yloc=yloc.price, 
+     style=label.style_arrowdown, color=color.orange, size=size.tiny)
+    
+br3 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and div_bear_3 and rsi[i] == rsih3                                          
+        break    
+    br3 := br3 + 1 
+br_3 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and div_bear_3 and rsi[i] == rsih0                                                      
+        break    
+    br_3 := br_3 + 1 
+
+if not arrows and Period and show_div and div_bear_3 and not div_bear_4 and not div_bear_5 
+ and not div_bear_6 
+    line1 = line.new(bar_index[br_3], rsi[br_3], bar_index[br3], rsi[br3], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.orange)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not rh ? line1 : na)
+    label.new(bar_index[br_3], rsi[br_3], xloc = xloc.bar_index, yloc=yloc.price, 
+     style=label.style_arrowdown, color=color.orange, size=size.tiny)
+ 
+br4 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and div_bear_4 and rsi[i] == rsih4                                          
+        break    
+    br4 := br4 + 1 
+br_4 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and div_bear_4 and rsi[i] == rsih0                                                      
+        break    
+    br_4 := br_4 + 1 
+
+if not arrows and Period and show_div and div_bear_4 and not div_bear_5 and not div_bear_6 
+    line1 = line.new(bar_index[br_4], rsi[br_4], bar_index[br4], rsi[br4], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.red)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not rh ? line1 : na) 
+    label.new(bar_index[br_4], rsi[br_4], xloc = xloc.bar_index, yloc=yloc.price, 
+     style=label.style_arrowdown, color=color.red, size=size.tiny)
+    
+br5 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and div_bear_5 and rsi[i] == rsih5                                          
+        break    
+    br5 := br5 + 1 
+br_5 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and div_bear_5 and rsi[i] == rsih0                                                      
+        break    
+    br_5 := br_5 + 1 
+
+if not arrows and Period and show_div and div_bear_5 and not div_bear_6 
+    line1 = line.new(bar_index[br_5], rsi[br_5], bar_index[br5], rsi[br5], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.red)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not rh ? line1 : na) 
+    label.new(bar_index[br_5], rsi[br_5], xloc = xloc.bar_index, yloc=yloc.price, 
+     style=label.style_arrowdown, color=color.red, size=size.tiny)
+    
+br6 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and div_bear_6 and rsi[i] == rsih6                                         
+        break    
+    br6 := br6 + 1 
+br_6 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and div_bear_6 and rsi[i] == rsih0                                                      
+        break    
+    br_6 := br_6 + 1 
+
+if not arrows and Period and show_div and div_bear_6
+    line1 = line.new(bar_index[br_6], rsi[br_6], bar_index[br6], rsi[br6], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.red)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not rh ? line1 : na) 
+    label.new(bar_index[br_6], rsi[br_6], xloc = xloc.bar_index, yloc=yloc.price, 
+     style=label.style_arrowdown, color=color.red, size=size.tiny)
+
+brx = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and div_bear_x and rsi[i] == rsihx                                        
+        break    
+    brx := brx + 1 
+br_x = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and div_bear_x and rsi[i] == rsih0                                                      
+        break    
+    br_x := br_x + 1 
+
+if not arrows and Period and show_div and div_bear_x 
+    line1 = line.new(bar_index[br_x], rsi[br_x], bar_index[brx], rsi[brx], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.purple)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not rh ? line1 : na)   
+    label.new(bar_index[br_x], rsi[br_x], xloc = xloc.bar_index, yloc=yloc.price, 
+     style=label.style_arrowdown, color=color.purple, size=size.tiny)
+    
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+// Hidden Bullish Divergences = close HL - RSI LL
+
+hbl1 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and hid_div_bull_1 and rsi[i] == rsil1                                         
+        break    
+    hbl1 := hbl1 + 1 
+hbl_1 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and hid_div_bull_1 and rsi[i] == rsil0                                                      
+        break    
+    hbl_1 := hbl_1 + 1 
+
+if not arrows and Period and show_hiddiv and hid_div_bull_1 and not hid_div_bull_2 and not hid_div_bull_3 
+ and not hid_div_bull_4 and not hid_div_bull_5 and not hid_div_bull_6 
+    line1 = line.new(bar_index[hbl_1], rsi[hbl_1], bar_index[hbl1], rsi[hbl1], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.white)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not rl ? line1 : na)
+    label.new(bar_index[hbl_1], rsi[hbl_1], xloc = xloc.bar_index, yloc=yloc.price, 
+     style=label.style_arrowup, color=color.white, size=size.tiny)
+    
+hbl2 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and hid_div_bull_2 and rsi[i] == rsil2                                         
+        break    
+    hbl2 := hbl2 + 1 
+hbl_2 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and hid_div_bull_2 and rsi[i] == rsil0                                                      
+        break    
+    hbl_2 := hbl_2 + 1 
+
+if not arrows and Period and show_hiddiv and hid_div_bull_2 and not hid_div_bull_3 and not hid_div_bull_4 
+ and not hid_div_bull_5 and not hid_div_bull_6
+    line1 = line.new(bar_index[hbl_2], rsi[hbl_2], bar_index[hbl2], rsi[hbl2], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.white)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not rl ? line1 : na)
+    label.new(bar_index[hbl_2], rsi[hbl_2], xloc = xloc.bar_index, yloc=yloc.price, 
+     style=label.style_arrowup, color=color.white, size=size.tiny)
+    
+hbl3 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and hid_div_bull_3 and rsi[i] == rsil3                                        
+        break    
+    hbl3 := hbl3 + 1 
+hbl_3 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and hid_div_bull_3 and rsi[i] == rsil0                                                      
+        break    
+    hbl_3 := hbl_3 + 1 
+
+if not arrows and Period and show_hiddiv and hid_div_bull_3 and not hid_div_bull_4 and not hid_div_bull_5 
+ and not hid_div_bull_6 
+    line1 = line.new(bar_index[hbl_3], rsi[hbl_3], bar_index[hbl3], rsi[hbl3], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.white)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not rl ? line1 : na)
+    label.new(bar_index[hbl_3], rsi[hbl_3], xloc = xloc.bar_index, yloc=yloc.price, 
+     style=label.style_arrowup, color=color.white, size=size.tiny)
+    
+hbl4 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and hid_div_bull_4 and rsi[i] == rsil4                                        
+        break    
+    hbl4 := hbl4 + 1 
+hbl_4 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and hid_div_bull_4 and rsi[i] == rsil0                                                     
+        break    
+    hbl_4 := hbl_4 + 1 
+
+if not arrows and Period and show_hiddiv and hid_div_bull_4 and not hid_div_bull_5 and not hid_div_bull_6 
+    line1 = line.new(bar_index[hbl_4], rsi[hbl_4], bar_index[hbl4], rsi[hbl4], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.white)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not rl ? line1 : na) 
+    label.new(bar_index[hbl_4], rsi[hbl_4], xloc = xloc.bar_index, yloc=yloc.price, 
+     style=label.style_arrowup, color=color.white, size=size.tiny)
+    
+hbl5 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and hid_div_bull_5 and rsi[i] == rsil5                                       
+        break    
+    hbl5 := hbl5 + 1 
+hbl_5 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and hid_div_bull_5 and rsi[i] == rsil0                                                      
+        break    
+    hbl_5 := hbl_5 + 1 
+
+if not arrows and Period and show_hiddiv and hid_div_bull_5 and not hid_div_bull_6 
+    line1 = line.new(bar_index[hbl_5], rsi[hbl_5], bar_index[hbl5], rsi[hbl5], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.white)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not rl ? line1 : na) 
+    label.new(bar_index[hbl_5], rsi[hbl_5], xloc = xloc.bar_index, yloc=yloc.price, 
+     style=label.style_arrowup, color=color.white, size=size.tiny)
+    
+hbl6 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and hid_div_bull_6 and rsi[i] == rsil6                                         
+        break    
+    hbl6 := hbl6 + 1 
+hbl_6 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and hid_div_bull_6 and rsi[i] == rsil0                                                      
+        break    
+    hbl_6 := hbl_6 + 1 
+
+if not arrows and Period and show_hiddiv and hid_div_bull_6 
+    line1 = line.new(bar_index[hbl_6], rsi[hbl_6], bar_index[hbl6], rsi[hbl6], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.white)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not rl ? line1 : na)  
+    label.new(bar_index[hbl_6], rsi[hbl_6], xloc = xloc.bar_index, yloc=yloc.price, 
+     style=label.style_arrowup, color=color.white, size=size.tiny)
+
+hblx = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and hid_div_bull_x and rsi[i] == rsilx                                         
+        break    
+    hblx := hblx + 1 
+hbl_x = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and hid_div_bull_x and rsi[i] == rsil0                                                      
+        break    
+    hbl_x := hbl_x + 1 
+
+if not arrows and Period and show_hiddiv and hid_div_bull_x
+    line1 = line.new(bar_index[hbl_x], rsi[hbl_x], bar_index[hblx], rsi[hblx], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.yellow)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not rl ? line1 : na)    
+    label.new(bar_index[hbl_x], rsi[hbl_x], xloc = xloc.bar_index, yloc=yloc.price, 
+     style=label.style_arrowup, color=color.yellow, size=size.tiny)
+    
+    
+// Hidden Bearish Divergences = close LH - RSI HH
+
+hbr1 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and hid_div_bear_1 and rsi[i] == rsih1                                        
+        break    
+    hbr1 := hbr1 + 1
+hbr_1 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and hid_div_bear_1 and rsi[i] == rsih0                                                     
+        break    
+    hbr_1 := hbr_1 + 1
+
+if not arrows and Period and show_hiddiv and hid_div_bear_1 and not hid_div_bear_2 and not hid_div_bear_3 
+ and not hid_div_bear_4 and not hid_div_bear_5 and not hid_div_bear_6 
+    line1 = line.new(bar_index[hbr_1], rsi[hbr_1], bar_index[hbr1], rsi[hbr1], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.white)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not rh ? line1 : na)
+    label.new(bar_index[hbr_1], rsi[hbr_1], xloc = xloc.bar_index, yloc=yloc.price, 
+     style=label.style_arrowdown, color=color.white, size=size.tiny)
+
+hbr2 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and hid_div_bear_2 and rsi[i] == rsih2                                       
+        break    
+    hbr2 := hbr2 + 1
+hbr_2 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and hid_div_bear_2 and rsi[i] == rsih0                                                    
+        break    
+    hbr_2 := hbr_2 + 1
+
+if not arrows and Period and show_hiddiv and hid_div_bear_2 and not hid_div_bear_3 and not hid_div_bear_4 
+ and not hid_div_bear_5 and not hid_div_bear_6 
+    line1 = line.new(bar_index[hbr_2], rsi[hbr_2], bar_index[hbr2], rsi[hbr2], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.white)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not rh ? line1 : na)  
+    label.new(bar_index[hbr_2], rsi[hbr_2], xloc = xloc.bar_index, yloc=yloc.price, 
+     style=label.style_arrowdown, color=color.white, size=size.tiny)
+    
+hbr3 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and hid_div_bear_3 and rsi[i] == rsih3                                      
+        break    
+    hbr3 := hbr3 + 1
+hbr_3 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and hid_div_bear_3 and rsi[i] == rsih0                                                    
+        break    
+    hbr_3 := hbr_3 + 1
+
+if not arrows and Period and show_hiddiv and hid_div_bear_3 and not hid_div_bear_4 and not hid_div_bear_5 
+ and not hid_div_bear_6 
+    line1 = line.new(bar_index[hbr_3], rsi[hbr_3], bar_index[hbr3], rsi[hbr3], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.white)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not rh ? line1 : na)
+    label.new(bar_index[hbr_3], rsi[hbr_3], xloc = xloc.bar_index, yloc=yloc.price, 
+     style=label.style_arrowdown, color=color.white, size=size.tiny)
+    
+hbr4 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and hid_div_bear_4 and rsi[i] == rsih4                                      
+        break    
+    hbr4 := hbr4 + 1
+hbr_4 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and hid_div_bear_4 and rsi[i] == rsih0                                                    
+        break    
+    hbr_4 := hbr_4 + 1
+
+if not arrows and Period and show_hiddiv and hid_div_bear_4 and not hid_div_bear_5 and not hid_div_bear_6 
+    line1 = line.new(bar_index[hbr_4], rsi[hbr_4], bar_index[hbr4], rsi[hbr4], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.white)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not rh ? line1 : na)  
+    label.new(bar_index[hbr_4], rsi[hbr_4], xloc = xloc.bar_index, yloc=yloc.price, 
+     style=label.style_arrowdown, color=color.white, size=size.tiny)
+    
+hbr5 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and hid_div_bear_5 and rsi[i] == rsih5                                      
+        break    
+    hbr5 := hbr5 + 1
+hbr_5 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and hid_div_bear_5 and rsi[i] == rsih0                                                    
+        break    
+    hbr_5 := hbr_5 + 1
+
+if not arrows and Period and show_hiddiv and hid_div_bear_5 and not hid_div_bear_6 
+    line1 = line.new(bar_index[hbr_5], rsi[hbr_5], bar_index[hbr5], rsi[hbr5], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.white)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not rh ? line1 : na)  
+    label.new(bar_index[hbr_5], rsi[hbr_5], xloc = xloc.bar_index, yloc=yloc.price, 
+     style=label.style_arrowdown, color=color.white, size=size.tiny)
+    
+hbr6 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and hid_div_bear_6 and rsi[i] == rsih6                                      
+        break    
+    hbr6 := hbr6 + 1
+hbr_6 = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and hid_div_bear_6 and rsi[i] == rsih0                                                    
+        break    
+    hbr_6 := hbr_6 + 1
+
+if not arrows and Period and show_hiddiv and hid_div_bear_6 
+    line1 = line.new(bar_index[hbr_6], rsi[hbr_6], bar_index[hbr6], rsi[hbr6], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.white)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not rh ? line1 : na)
+    label.new(bar_index[hbr_6], rsi[hbr_6], xloc = xloc.bar_index, yloc=yloc.price, 
+     style=label.style_arrowdown, color=color.white, size=size.tiny)
+
+hbrx = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and hid_div_bear_x and rsi[i] == rsihx                                      
+        break    
+    hbrx := hbrx + 1
+hbr_x = 0                                                                        
+for i = 0 to 200                                                                
+    if not arrows and Period and hid_div_bear_x and rsi[i] == rsih0                                                     
+        break    
+    hbr_x := hbr_x + 1
+
+if not arrows and Period and show_hiddiv and hid_div_bear_x 
+    line1 = line.new(bar_index[hbr_x], rsi[hbr_x], bar_index[hbrx], rsi[hbrx], xloc = 
+     xloc.bar_index, extend=extend.none, color=color.yellow)
+    line.set_width(line1, lw)
+    line.set_style(line1, _dot)
+    line.delete(not rh ? line1 : na)  
+    label.new(bar_index[hbr_x], rsi[hbr_x], xloc = xloc.bar_index, yloc=yloc.price, 
+     style=label.style_arrowdown, color=color.yellow, size=size.tiny)
