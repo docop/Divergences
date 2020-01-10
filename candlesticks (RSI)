@@ -1,0 +1,995 @@
+//@version=4
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// This source code is subject to the terms of the Creative Commons Zero v1.0 Universal license
+// https://github.com/fikira12/Divergences
+// Copyright (c) 2019 @fikira
+// © fikira
+// This script is used with candlesticks and accompanied with RSI with Divergences
+
+study(title="[fikira] Divergences (RSI)", shorttitle="DIV (RSI)", overlay=true)
+
+len = input(14, title="Length RSI")
+src = input(close, title="Source RSI")
+rsi = rsi(src, len)
+//plot(rsi)
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//x = input(false, title="Switch")
+//_x = x ? 2 : 1                   
+
+// Version 1:
+//nwh = close > open ? close : close < open ? open : na 
+//nwl = close > open ? open : close < open ? close : na 
+
+// Version 2 (not switch, use nwh[1] and rsi[1]):
+nwh = close > open ? close : na 
+nwl = close < open ? close : na 
+
+//nwh_ = close > open ? high : close < open ? high : na 
+//nwl_ = close > open ? low : close < open ? low : na 
+
+nwh_ = close > open ? high : na 
+nwl_ = close < open ? low : na 
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+show_piv = input(false, title="Show Pivot High & Lows")
+show_div = input(true, title="Show Regular Divergences")
+show_hiddiv = input(true, title="Show Hidden Divergences")
+
+lw = input(1, minval=0, maxval=10, title="Div Line linewidth")
+lb1 = input(100, title = "Lookback Div Lines Short")  
+lb2 = input(200, title = "Lookback Div Lines Long")  
+lb3 = input(400, title = "Lookback Div Lines Very Long")
+
+Bars = input(false, title="-<><><><><><>[LeftBars   RightBars]<><><><><><>-")
+
+LB = input(10, title = "LeftBars")                      
+RB = input(1, title = "RightBars")                    
+
+ph = pivothigh(nwh, LB, RB)     
+pl = pivotlow(nwl, LB, RB)       
+ph_ = pivothigh(nwh_, LB, RB)     
+pl_ = pivotlow(nwl_, LB, RB) 
+rh = pivothigh(rsi, LB, RB)      
+rl = pivotlow(rsi, LB, RB)       
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+hh0 = valuewhen(ph, nwh[1], 0)                                        
+ll0 = valuewhen(pl, nwl[1], 0)                                         
+rsih0 = hh0 ? valuewhen(ph, rsi[1], 0) : na
+rsil0 = ll0 ? valuewhen(pl, rsi[1], 0) : na
+//plotshape(ll0 and pl ? ll0 : na, color=color.olive)
+//plotshape(rsil0 and pl ? rsil0 : na, color=color.red, location=location.belowbar)
+
+hh1 = hh0 ? valuewhen(ph, nwh[1], 1) : na  
+hh1_ = hh0 ? valuewhen(ph, nwh_[1], 1) : na  
+ll1 = ll0 ? valuewhen(pl, nwl[1], 1) : na                                      
+ll1_ = ll0 ? valuewhen(pl, nwl_[1], 1) : na 
+rsih1 = hh0 ? valuewhen(ph, rsi[1], 1) : na
+rsil1 = ll0 ? valuewhen(pl, rsi[1], 1) : na
+//plotshape(ll1 and pl ? ll1 : na)
+
+hh2 = hh0 ? valuewhen(ph, nwh[1], 2) : na  
+hh2_ = hh0 ? valuewhen(ph, nwh_[1], 2) : na 
+ll2 = ll0 ? valuewhen(pl, nwl[1], 2) : na 
+ll2_ = ll0 ? valuewhen(pl, nwl_[1], 2) : na 
+rsih2 = hh0 ? valuewhen(ph, rsi[1], 2) : na
+rsil2 = ll0 ? valuewhen(pl, rsi[1], 2) : na
+
+hh3 = hh0 ? valuewhen(ph, nwh[1], 3) : na  
+hh3_ = hh0 ? valuewhen(ph, nwh_[1], 3) : na 
+ll3 = ll0 ? valuewhen(pl, nwl[1], 3) : na 
+ll3_ = ll0 ? valuewhen(pl, nwl_[1], 3) : na 
+rsih3 = hh0 ? valuewhen(ph, rsi[1], 3) : na
+rsil3 = ll0 ? valuewhen(pl, rsi[1], 3) : na
+
+hh4 = hh0 ? valuewhen(ph, nwh[1], 4) : na  
+hh4_ = hh0 ? valuewhen(ph, nwh_[1], 4) : na 
+ll4 = ll0 ? valuewhen(pl, nwl[1], 4) : na 
+ll4_ = ll0 ? valuewhen(pl, nwl_[1], 4) : na 
+rsih4 = hh0 ? valuewhen(ph, rsi[1], 4) : na
+rsil4 = ll0 ? valuewhen(pl, rsi[1], 4) : na
+
+hh5 = hh0 ? valuewhen(ph, nwh[1], 5) : na  
+hh5_ = hh0 ? valuewhen(ph, nwh_[1], 5) : na 
+ll5 = ll0 ? valuewhen(pl, nwl[1], 5) : na 
+ll5_ = ll0 ? valuewhen(pl, nwl_[1], 5) : na 
+rsih5 = hh0 ? valuewhen(ph, rsi[1], 5) : na
+rsil5 = ll0 ? valuewhen(pl, rsi[1], 5) : na
+
+hh6 = hh0 ? valuewhen(ph, nwh[1], 6) : na  
+hh6_ = hh0 ? valuewhen(ph, nwh_[1], 6) : na 
+ll6 = ll0 ? valuewhen(pl, nwl[1], 6) : na 
+ll6_ = ll0 ? valuewhen(pl, nwl_[1], 6) : na 
+rsih6 = hh0 ? valuewhen(ph, rsi[1], 6) : na
+rsil6 = ll0 ? valuewhen(pl, rsi[1], 6) : na
+
+hh7 = hh0 ? valuewhen(ph, nwh[1], 7) : na  
+hh7_ = hh0 ? valuewhen(ph, nwh_[1], 7) : na 
+ll7 = ll0 ? valuewhen(pl, nwl[1], 7) : na 
+ll7_ = ll0 ? valuewhen(pl, nwl_[1], 7) : na 
+rsih7 = hh0 ? valuewhen(ph, rsi[1], 7) : na
+rsil7 = ll0 ? valuewhen(pl, rsi[1], 7) : na
+
+hh8 = hh0 ? valuewhen(ph, nwh[1], 8) : na  
+hh8_ = hh0 ? valuewhen(ph, nwh_[1], 8) : na 
+ll8 = ll0 ? valuewhen(pl, nwl[1], 8) : na 
+ll8_ = ll0 ? valuewhen(pl, nwl_[1], 8) : na 
+rsih8 = hh0 ? valuewhen(ph, rsi[1], 8) : na
+rsil8 = ll0 ? valuewhen(pl, rsi[1], 8) : na
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+_m = input(title="Margin", defval="0", options=["0", "0.236", "0.382", "0.5", "0.618", "0.786", "1", "1.272", "1.618", "1.786", "2"])  
+
+m = 0.5
+if _m == "0"
+    m := 0 
+else
+    if _m == "0"
+        m := 0
+    else
+        if _m == "0.382"
+            m := 0.382
+        else
+            if _m == "0.5"
+                m := 0.5
+            else
+                if _m == "0.618"
+                    m := 0.618
+                else
+                    if _m == "0.786"
+                        m := 0.786
+                    else
+                        if _m == "1"
+                            m := 1
+                        else
+                            if _m == "1.272"
+                                m := 1.272
+                            else
+                                if _m == "1.618"
+                                    m := 1.618
+                                else
+                                    if _m == "1.786"
+                                        m := 1.786
+                                    else
+                                        if _m == "2"
+                                            m := 2
+
+
+// Bullish Divergences = close LL - RSI HL
+
+close_LL1 = ll0 < ll1
+rsi_HL1 = rsil0 > rsil1
+
+close_LL2 = ll0 < ll2 
+// and ll1 > ll0 and ll1 > ll2_
+ and ll1 > ll0 and ll1 > (ll2_ - ((ll2_ - ll0) * m))
+rsi_HL2 = rsil0 > rsil2 and rsil1 > rsil2
+
+close_LL3 = ll0 < ll3 
+ and ll1 > ll0 and ll1 > (ll3_ - ((ll3_ - ll0) * m))
+ and ll2 > ll0 and ll2 > (ll3_ - ((ll3_ - ll0) * m))
+rsi_HL3 = rsil0 > rsil3 and rsil1 > rsil3 and rsil2 > rsil3
+
+close_LL4 = ll0 < ll4 
+ and ll1 > ll0 and ll1 > (ll4_ - ((ll4_ - ll0) * m)) 
+ and ll2 > ll0 and ll2 > (ll4_ - ((ll4_ - ll0) * m)) 
+ and ll3 > ll0 and ll3 > (ll4_ - ((ll4_ - ll0) * m))
+rsi_HL4 = rsil0 > rsil4 and rsil1 > rsil4 and rsil2 > rsil4 
+ and rsil3 > rsil4
+
+close_LL5 = ll0 < ll5 
+ and ll1 > ll0 and ll1 > (ll5_ - ((ll5_ - ll0) * m)) 
+ and ll2 > ll0 and ll2 > (ll5_ - ((ll5_ - ll0) * m))
+ and ll3 > ll0 and ll3 > (ll5_ - ((ll5_ - ll0) * m))
+ and ll4 > ll0 and ll4 > (ll5_ - ((ll5_ - ll0) * m))
+rsi_HL5 = rsil0 > rsil5 and rsil1 > rsil5 and rsil2 > rsil5 
+ and rsil3 > rsil5 and rsil4 > rsil5
+
+close_LL6 = ll0 < ll6 
+ and ll1 > ll0 and ll1 > (ll6_ - ((ll6_ - ll0) * m))
+ and ll2 > ll0 and ll2 > (ll6_ - ((ll6_ - ll0) * m))
+ and ll3 > ll0 and ll3 > (ll6_ - ((ll6_ - ll0) * m))
+ and ll4 > ll0 and ll4 > (ll6_ - ((ll6_ - ll0) * m))
+ and ll5 > ll0 and ll5 > (ll6_ - ((ll6_ - ll0) * m))
+rsi_HL6 = rsil0 > rsil6 and rsil1 > rsil6 and rsil2 > rsil6 
+ and rsil3 > rsil6 and rsil4 > rsil6 and rsil5 > rsil6
+
+close_LL7 = ll0 < ll7 
+ and ll1 > ll0 and ll1 > (ll7_ - ((ll7_ - ll0) * m))
+ and ll2 > ll0 and ll2 > (ll7_ - ((ll7_ - ll0) * m))
+ and ll3 > ll0 and ll3 > (ll7_ - ((ll7_ - ll0) * m))
+ and ll4 > ll0 and ll4 > (ll7_ - ((ll7_ - ll0) * m))
+ and ll5 > ll0 and ll5 > (ll7_ - ((ll7_ - ll0) * m))
+ and ll6 > ll0 and ll6 > (ll7_ - ((ll7_ - ll0) * m))
+rsi_HL7 = rsil0 > rsil7 and rsil1 > rsil7 and rsil2 > rsil7 
+ and rsil3 > rsil7 and rsil4 > rsil7 and rsil5 > rsil7 
+ and rsil6 > rsil7
+
+close_LL8 = ll0 < ll8 
+ and ll1 > ll0 and ll1 > (ll8_ - ((ll8_ - ll0) * m))
+ and ll2 > ll0 and ll2 > (ll8_ - ((ll8_ - ll0) * m))
+ and ll3 > ll0 and ll3 > (ll8_ - ((ll8_ - ll0) * m))
+ and ll4 > ll0 and ll4 > (ll8_ - ((ll8_ - ll0) * m))
+ and ll5 > ll0 and ll5 > (ll8_ - ((ll8_ - ll0) * m))
+ and ll6 > ll0 and ll6 > (ll8_ - ((ll8_ - ll0) * m))
+ and ll7 > ll0 and ll7 > (ll8_ - ((ll8_ - ll0) * m))
+rsi_HL8 = rsil0 > rsil8 and rsil1 > rsil8 and rsil2 > rsil8 
+ and rsil3 > rsil8 and rsil4 > rsil8 and rsil5 > rsil8 
+ and rsil6 > rsil8 and rsil7 > rsil8
+
+div_bull_1 = close_LL1 and rsi_HL1
+div_bull_2 = close_LL2 and rsi_HL2
+div_bull_3 = close_LL3 and rsi_HL3
+div_bull_4 = close_LL4 and rsi_HL4
+div_bull_5 = close_LL5 and rsi_HL5
+div_bull_6 = close_LL6 and rsi_HL6
+div_bull_7 = close_LL7 and rsi_HL7
+div_bull_8 = close_LL8 and rsi_HL8
+   
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Bearish Divergences = close HH - RSI LH
+
+close_HH1 = hh0 > hh1
+rsi_LH1 = rsih0 < rsih1
+
+close_HH2 = hh0 > hh2 
+ and hh1 < hh0 and hh1 < (hh2_ + ((hh0 - hh2_) * m))
+rsi_LH2 = rsih0 < rsih2 and rsih1 < rsih2
+
+close_HH3 = hh0 > hh3 
+ and hh1 < hh0 and hh1 < (hh3_ + ((hh0 - hh3_) * m))
+ and hh2 < hh0 and hh2 < (hh3_ + ((hh0 - hh3_) * m))
+rsi_LH3 = rsih0 < rsih3 and rsih1 < rsih3 and rsih2 < rsih3
+
+close_HH4 = hh0 > hh4 
+ and hh1 < hh0 and hh1 < (hh4_ + ((hh0 - hh4_) * m)) 
+ and hh2 < hh0 and hh2 < (hh4_ + ((hh0 - hh4_) * m))  
+ and hh3 < hh0 and hh3 < (hh4_ + ((hh0 - hh4_) * m)) 
+rsi_LH4 = rsih0 < rsih4 and rsih1 < rsih4 and rsih2 < rsih4 and rsih3 < rsih4
+
+close_HH5 = hh0 > hh5 
+ and hh1 < hh0 and hh1 < (hh5_ + ((hh0 - hh5_) * m))  
+ and hh2 < hh0 and hh2 < (hh5_ + ((hh0 - hh5_) * m))  
+ and hh3 < hh0 and hh3 < (hh5_ + ((hh0 - hh5_) * m))  
+ and hh4 < hh0 and hh4 < (hh5_ + ((hh0 - hh5_) * m)) 
+rsi_LH5 = rsih0 < rsih5 and rsih1 < rsih5 and rsih2 < rsih5 and rsih3 < rsih5 
+ and rsih4 < rsih5
+
+close_HH6 = hh0 > hh6 
+ and hh1 < hh0 and hh1 < (hh6_ + ((hh0 - hh6_) * m))  
+ and hh2 < hh0 and hh2 < (hh6_ + ((hh0 - hh6_) * m))  
+ and hh3 < hh0 and hh3 < (hh6_ + ((hh0 - hh6_) * m))  
+ and hh4 < hh0 and hh4 < (hh6_ + ((hh0 - hh6_) * m))  
+ and hh5 < hh0 and hh5 < (hh6_ + ((hh0 - hh6_) * m)) 
+rsi_LH6 = rsih0 < rsih6 and rsih1 < rsih6 and rsih2 < rsih6 and rsih3 < rsih6 
+ and rsih4 < rsih6 and rsih5 < rsih6
+
+close_HH7 = hh0 > hh7 
+ and hh1 < hh0 and hh1 < (hh7_ + ((hh0 - hh7_) * m))  
+ and hh2 < hh0 and hh2 < (hh7_ + ((hh0 - hh7_) * m))  
+ and hh3 < hh0 and hh3 < (hh7_ + ((hh0 - hh7_) * m))  
+ and hh4 < hh0 and hh4 < (hh7_ + ((hh0 - hh7_) * m))  
+ and hh5 < hh0 and hh5 < (hh7_ + ((hh0 - hh7_) * m)) 
+ and hh6 < hh0 and hh6 < (hh7_ + ((hh0 - hh7_) * m)) 
+rsi_LH7 = rsih0 < rsih7 and rsih1 < rsih7 and rsih2 < rsih7 and rsih3 < rsih7 
+ and rsih4 < rsih7 and rsih5 < rsih7 and rsih6 < rsih7
+
+close_HH8 = hh0 > hh8 
+ and hh1 < hh0 and hh1 < (hh8_ + ((hh0 - hh8_) * m))  
+ and hh2 < hh0 and hh2 < (hh8_ + ((hh0 - hh8_) * m))  
+ and hh3 < hh0 and hh3 < (hh8_ + ((hh0 - hh8_) * m))  
+ and hh4 < hh0 and hh4 < (hh8_ + ((hh0 - hh8_) * m))  
+ and hh5 < hh0 and hh5 < (hh8_ + ((hh0 - hh8_) * m)) 
+ and hh6 < hh0 and hh6 < (hh8_ + ((hh0 - hh8_) * m))  
+ and hh7 < hh0 and hh7 < (hh8_ + ((hh0 - hh8_) * m)) 
+rsi_LH8 = rsih0 < rsih8 and rsih1 < rsih8 and rsih2 < rsih8 and rsih3 < rsih8
+ and rsih4 < rsih8 and rsih5 < rsih8 and rsih6 < rsih8 and rsih7 < rsih8
+ 
+div_bear_1 = close_HH1 and rsi_LH1 
+div_bear_2 = close_HH2 and rsi_LH2 
+div_bear_3 = close_HH3 and rsi_LH3
+div_bear_4 = close_HH4 and rsi_LH4
+div_bear_5 = close_HH5 and rsi_LH5
+div_bear_6 = close_HH6 and rsi_LH6
+div_bear_7 = close_HH7 and rsi_LH7
+div_bear_8 = close_HH8 and rsi_LH8
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Hidden Bullish Divergences = close HL - RSI LL
+
+close_HL1 = ll0 > ll1
+rsi_LL1 = rsil0 < rsil1
+
+close_HL2 = ll0 > ll2 
+ and ll1 > ll0 and ll1 > (ll2_ - ((ll0 - ll2_) * m))
+rsi_LL2 = rsil0 < rsil2 and rsil1 > rsil0
+
+close_HL3 = ll0 > ll3 
+ and ll1 > ll0 and ll1 > (ll3_ - ((ll0 - ll3_) * m)) 
+ and ll2 > ll0 and ll2 > (ll3_ - ((ll0 - ll3_) * m))
+rsi_LL3 = rsil0 < rsil3 and rsil1 > rsil0 and rsil2 > rsil0
+
+close_HL4 = ll0 > ll4 
+ and ll1 > ll0 and ll1 > (ll4_ - ((ll0 - ll4_) * m)) 
+ and ll2 > ll0 and ll2 > (ll4_ - ((ll0 - ll4_) * m)) 
+ and ll3 > ll0 and ll3 > (ll4_ - ((ll0 - ll4_) * m))
+rsi_LL4 = rsil0 < rsil4 and rsil1 > rsil0 and rsil2 > rsil0 and rsil3 > rsil0
+
+close_HL5 = ll0 > ll5 
+ and ll1 > ll0 and ll1 > (ll5_ - ((ll0 - ll5_) * m)) 
+ and ll2 > ll0 and ll2 > (ll5_ - ((ll0 - ll5_) * m)) 
+ and ll3 > ll0 and ll3 > (ll5_ - ((ll0 - ll5_) * m)) 
+ and ll4 > ll0 and ll4 > (ll5_ - ((ll0 - ll5_) * m))
+rsi_LL5 = rsil0 < rsil5 and rsil1 > rsil0 and rsil2 > rsil0 and rsil3 > rsil0 and rsil4 > rsil0
+
+close_HL6 = ll0 > ll6 
+ and ll1 > ll0 and ll1 > (ll6_ - ((ll0 - ll6_) * m)) 
+ and ll2 > ll0 and ll2 > (ll6_ - ((ll0 - ll6_) * m)) 
+ and ll3 > ll0 and ll3 > (ll6_ - ((ll0 - ll6_) * m)) 
+ and ll4 > ll0 and ll4 > (ll6_ - ((ll0 - ll6_) * m)) 
+ and ll5 > ll0 and ll5 > (ll6_ - ((ll0 - ll6_) * m))
+rsi_LL6 = rsil0 < rsil6 and rsil1 > rsil0 and rsil2 > rsil0 and rsil3 > rsil0 and rsil4 > rsil0 
+ and rsil5 > rsil0
+
+close_HL7 = ll0 > ll7 
+ and ll1 > ll0 and ll1 > (ll7_ - ((ll0 - ll7_) * m)) 
+ and ll2 > ll0 and ll2 > (ll7_ - ((ll0 - ll7_) * m)) 
+ and ll3 > ll0 and ll3 > (ll7_ - ((ll0 - ll7_) * m)) 
+ and ll4 > ll0 and ll4 > (ll7_ - ((ll0 - ll7_) * m)) 
+ and ll5 > ll0 and ll5 > (ll7_ - ((ll0 - ll7_) * m)) 
+ and ll6 > ll0 and ll6 > (ll7_ - ((ll0 - ll7_) * m))
+rsi_LL7 = rsil0 < rsil7 and rsil1 > rsil0 and rsil2 > rsil0 and rsil3 > rsil0 
+ and rsil4 > rsil0 and rsil5 > rsil0 and rsil6 > rsil0
+
+close_HL8 = ll0 > ll8 
+ and ll1 > ll0 and ll1 > (ll8_ - ((ll0 - ll8_) * m)) 
+ and ll2 > ll0 and ll2 > (ll8_ - ((ll0 - ll8_) * m)) 
+ and ll3 > ll0 and ll3 > (ll8_ - ((ll0 - ll8_) * m)) 
+ and ll4 > ll0 and ll4 > (ll8_ - ((ll0 - ll8_) * m)) 
+ and ll5 > ll0 and ll5 > (ll8_ - ((ll0 - ll8_) * m)) 
+ and ll6 > ll0 and ll6 > (ll8_ - ((ll0 - ll8_) * m)) 
+ and ll7 > ll0 and ll7 > (ll8_ - ((ll0 - ll8_) * m))
+rsi_LL8 = rsil0 < rsil8 and rsil1 > rsil0 and rsil2 > rsil0 and rsil3 > rsil0 and rsil4 > rsil0 
+ and rsil5 > rsil0 and rsil6 > rsil0 and rsil7 > rsil0
+
+hid_div_bull_1 = close_HL1 and rsi_LL1
+hid_div_bull_2 = close_HL2 and rsi_LL2
+hid_div_bull_3 = close_HL3 and rsi_LL3
+hid_div_bull_4 = close_HL4 and rsi_LL4
+hid_div_bull_5 = close_HL5 and rsi_LL5
+hid_div_bull_6 = close_HL6 and rsi_LL6
+hid_div_bull_7 = close_HL7 and rsi_LL7
+hid_div_bull_8 = close_HL8 and rsi_LL8
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Hidden Bearish Divergences = close LH - RSI HH
+
+close_LH1 = hh0 < hh1
+rsi_HH1 = rsih0 > rsih1
+
+close_LH2 = hh0 < hh2 
+ and hh1 < hh0 and hh1 < (hh2_ + ((hh2_ - hh0) * m)) 
+rsi_HH2 = rsih0 > rsih2 and rsih1 < rsih0
+
+close_LH3 = hh0 < hh3 
+ and hh1 < hh0 and hh1 < (hh3_ + ((hh3_ - hh0) * m))  
+ and hh2 < hh0 and hh2 < (hh3_ + ((hh3_ - hh0) * m)) 
+rsi_HH3 = rsih0 > rsih3 and rsih1 < rsih0 and rsih2 < rsih0
+
+close_LH4 = hh0 < hh4 
+ and hh1 < hh0 and hh1 < (hh4_ + ((hh4_ - hh0) * m))  
+ and hh2 < hh0 and hh2 < (hh4_ + ((hh4_ - hh0) * m))  
+ and hh3 < hh0 and hh3 < (hh4_ + ((hh4_ - hh0) * m)) 
+rsi_HH4 = rsih0 > rsih4 and rsih1 < rsih0 and rsih2 < rsih0 and rsih3 < rsih0
+
+close_LH5 = hh0 < hh5 
+ and hh1 < hh0 and hh1 < (hh5_ + ((hh5_ - hh0) * m))  
+ and hh2 < hh0 and hh2 < (hh5_ + ((hh5_ - hh0) * m))  
+ and hh3 < hh0 and hh3 < (hh5_ + ((hh5_ - hh0) * m))  
+ and hh4 < hh0 and hh4 < (hh5_ + ((hh5_ - hh0) * m)) 
+rsi_HH5 = rsih0 > rsih5 and rsih1 < rsih0 and rsih2 < rsih0 and rsih3 < rsih0 
+ and rsih4 < rsih0
+
+close_LH6 = hh0 < hh6 
+ and hh1 < hh0 and hh1 < (hh6_ + ((hh6_ - hh0) * m))  
+ and hh2 < hh0 and hh2 < (hh6_ + ((hh6_ - hh0) * m))  
+ and hh3 < hh0 and hh3 < (hh6_ + ((hh6_ - hh0) * m))  
+ and hh4 < hh0 and hh4 < (hh6_ + ((hh6_ - hh0) * m))  
+ and hh5 < hh0 and hh5 < (hh6_ + ((hh6_ - hh0) * m)) 
+rsi_HH6 = rsih0 > rsih6 and rsih1 < rsih0 and rsih2 < rsih0 and rsih3 < rsih0 
+ and rsih4 < rsih0 and rsih5 < rsih0
+
+close_LH7 = hh0 < hh7 
+ and hh1 < hh0 and hh1 < (hh7_ + ((hh7_ - hh0) * m))  
+ and hh2 < hh0 and hh2 < (hh7_ + ((hh7_ - hh0) * m))  
+ and hh3 < hh0 and hh3 < (hh7_ + ((hh7_ - hh0) * m))  
+ and hh4 < hh0 and hh4 < (hh7_ + ((hh7_ - hh0) * m))  
+ and hh5 < hh0 and hh5 < (hh7_ + ((hh7_ - hh0) * m))
+ and hh6 < hh0 and hh6 < (hh7_ + ((hh7_ - hh0) * m)) 
+rsi_HH7 = rsih0 > rsih7 and rsih1 < rsih0 and rsih2 < rsih0 and rsih3 < rsih0 
+ and rsih4 < rsih0 and rsih5 < rsih0 and rsih6 < rsih0
+
+close_LH8 = hh0 < hh8 
+ and hh1 < hh0 and hh1 < (hh8_ + ((hh8_ - hh0) * m))  
+ and hh2 < hh0 and hh2 < (hh8_ + ((hh8_ - hh0) * m))  
+ and hh3 < hh0 and hh3 < (hh8_ + ((hh8_ - hh0) * m))  
+ and hh4 < hh0 and hh4 < (hh8_ + ((hh8_ - hh0) * m))  
+ and hh5 < hh0 and hh5 < (hh8_ + ((hh8_ - hh0) * m)) 
+ and hh6 < hh0 and hh6 < (hh8_ + ((hh8_ - hh0) * m))  
+ and hh7 < hh0 and hh7 < (hh8_ + ((hh8_ - hh0) * m)) 
+rsi_HH8 = rsih0 > rsih8 and rsih1 < rsih0 and rsih2 < rsih0 and rsih3 < rsih0 
+ and rsih4 < rsih0 and rsih5 < rsih0 and rsih6 < rsih0 and rsih7 < rsih0
+
+hid_div_bear_1 = close_LH1 and rsi_HH1 
+hid_div_bear_2 = close_LH2 and rsi_HH2 
+hid_div_bear_3 = close_LH3 and rsi_HH3 
+hid_div_bear_4 = close_LH4 and rsi_HH4
+hid_div_bear_5 = close_LH5 and rsi_HH5
+hid_div_bear_6 = close_LH6 and rsi_HH6
+hid_div_bear_7 = close_LH7 and rsi_HH7
+hid_div_bear_8 = close_LH8 and rsi_HH8
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+plotchar(div_bull_1 and not div_bull_1[1] and show_div, char="↑︎︎", title="Bull Div 1",
+ location=location.belowbar, color= color.green, size=size.tiny, transp=0, offset=-1)
+plotchar(div_bull_2 and not div_bull_2[1] and show_div, char="↑︎︎", title="Bull Div 2",
+ location=location.belowbar, color= color.green, size=size.tiny, transp=0, offset=-1)
+plotchar(div_bull_3 and not div_bull_3[1] and show_div, char="↑︎︎", title="Bull Div 3",
+ location=location.belowbar, color= color.green, size=size.tiny, transp=0, offset=-1)
+plotchar(div_bull_4 and not div_bull_4[1] and show_div, char="↑︎︎", title="Bull Div 4",
+ location=location.belowbar, color= color.lime, size=size.tiny, transp=0, offset=-1)
+plotchar(div_bull_5 and not div_bull_5[1] and show_div, char="↑︎︎", title="Bull Div 5",
+ location=location.belowbar, color= color.lime, size=size.tiny, transp=0, offset=-1)
+plotchar(div_bull_6 and not div_bull_6[1] and show_div, char="↑︎︎", title="Bull Div 6",
+ location=location.belowbar, color= color.lime, size=size.tiny, transp=0, offset=-1)
+plotchar(div_bull_7 and not div_bull_7[1] and show_div, char="↑︎︎", title="Bull Div 7",
+ location=location.belowbar, color= color.aqua, size=size.tiny, transp=0, offset=-1)
+plotchar(div_bull_8 and not div_bull_8[1] and show_div, char="↑︎︎", title="Bull Div 8",
+ location=location.belowbar, color= color.aqua, size=size.tiny, transp=0, offset=-1)
+
+plotchar(div_bear_1 and not div_bear_1[1] and show_div, char="↓︎︎", title="Bear Div 1",
+ location=location.abovebar, color= color.orange, size=size.tiny, transp=0, offset=-1)
+plotchar(div_bear_2 and not div_bear_2[1] and show_div, char="↓︎︎", title="Bear Div 2",
+ location=location.abovebar, color= color.orange, size=size.tiny, transp=0, offset=-1)
+plotchar(div_bear_3 and not div_bear_3[1] and show_div, char="↓︎︎", title="Bear Div 3",
+ location=location.abovebar, color= color.orange, size=size.tiny, transp=0, offset=-1)
+plotchar(div_bear_4 and not div_bear_4[1] and show_div, char="↓︎︎", title="Bear Div 4",
+ location=location.abovebar, color= color.red, size=size.tiny, transp=0, offset=-1)
+plotchar(div_bear_5 and not div_bear_5[1] and show_div, char="↓︎︎", title="Bear Div 5",
+ location=location.abovebar, color= color.red, size=size.tiny, transp=0, offset=-1)
+plotchar(div_bear_6 and not div_bear_6[1] and show_div, char="↓︎︎", title="Bear Div 6",
+ location=location.abovebar, color= color.red, size=size.tiny, transp=0, offset=-1)
+plotchar(div_bear_7 and not div_bear_7[1] and show_div, char="↓︎︎", title="Bear Div 7",
+ location=location.abovebar, color= color.purple, size=size.tiny, transp=0, offset=-1)
+plotchar(div_bear_8 and not div_bear_8[1] and show_div, char="↓︎︎", title="Bear Div 8",
+ location=location.abovebar, color= color.purple, size=size.tiny, transp=0, offset=-1)
+
+plotchar(hid_div_bull_1 and not hid_div_bull_1[1] and show_hiddiv, char="↑︎︎", title="Hidden Bull Div 1",
+ location=location.belowbar, color= color.white, size=size.tiny, transp=0, offset=-1)
+plotchar(hid_div_bull_2 and not hid_div_bull_2[1] and show_hiddiv, char="↑︎︎", title="Hidden Bull Div 2",
+ location=location.belowbar, color= color.white, size=size.tiny, transp=0, offset=-1)
+plotchar(hid_div_bull_3 and not hid_div_bull_3[1] and show_hiddiv, char="↑︎︎", title="Hidden Bull Div 3",
+ location=location.belowbar, color= color.white, size=size.tiny, transp=0, offset=-1)
+plotchar(hid_div_bull_4 and not hid_div_bull_4[1] and show_hiddiv, char="↑︎︎", title="Hidden Bull Div 4",
+ location=location.belowbar, color= color.white, size=size.tiny, transp=0, offset=-1)
+plotchar(hid_div_bull_5 and not hid_div_bull_5[1] and show_hiddiv, char="↑︎︎", title="Hidden Bull Div 5",
+ location=location.belowbar, color= color.white, size=size.tiny, transp=0, offset=-1)
+plotchar(hid_div_bull_6 and not hid_div_bull_6[1] and show_hiddiv, char="↑︎︎", title="Hidden Bull Div 6",
+ location=location.belowbar, color= color.white, size=size.tiny, transp=0, offset=-1)
+plotchar(hid_div_bull_7 and not hid_div_bull_7[1] and show_hiddiv, char="↑︎︎", title="Hidden Bull Div 7",
+ location=location.belowbar, color= color.yellow, size=size.tiny, transp=0, offset=-1)
+plotchar(hid_div_bull_8 and not hid_div_bull_8[1] and show_hiddiv, char="↑︎︎", title="Hidden Bull Div 8",
+ location=location.belowbar, color= color.yellow, size=size.tiny, transp=0, offset=-1)
+
+plotchar(hid_div_bear_1 and not hid_div_bear_1[1] and show_hiddiv, char="↓︎", title="Hidden Bear Div 1",
+ location=location.abovebar, color= color.white, size=size.tiny, transp=0, offset=-1)
+plotchar(hid_div_bear_2 and not hid_div_bear_2[1] and show_hiddiv, char="↓︎︎", title="Hidden Bear Div 2",
+ location=location.abovebar, color= color.white, size=size.tiny, transp=0, offset=-1)
+plotchar(hid_div_bear_3 and not hid_div_bear_3[1] and show_hiddiv, char="↓︎︎", title="Hidden Bear Div 3",
+ location=location.abovebar, color= color.white, size=size.tiny, transp=0, offset=-1) 
+plotchar(hid_div_bear_4 and not hid_div_bear_4[1] and show_hiddiv, char="↓︎︎", title="Hidden Bear Div 4",
+ location=location.abovebar, color= color.white, size=size.tiny, transp=0, offset=-1) 
+plotchar(hid_div_bear_5 and not hid_div_bear_5[1] and show_hiddiv, char="↓︎︎", title="Hidden Bear Div 5",
+ location=location.abovebar, color= color.white, size=size.tiny, transp=0, offset=-1) 
+plotchar(hid_div_bear_6 and not hid_div_bear_6[1] and show_hiddiv, char="↓︎︎", title="Hidden Bear Div 6",
+ location=location.abovebar, color= color.white, size=size.tiny, transp=0, offset=-1) 
+plotchar(hid_div_bear_7 and not hid_div_bear_7[1] and show_hiddiv, char="↓︎︎", title="Hidden Bear Div 7",
+ location=location.abovebar, color= color.yellow, size=size.tiny, transp=0, offset=-1) 
+plotchar(hid_div_bear_8 and not hid_div_bear_8[1] and show_hiddiv, char="↓︎︎", title="Hidden Bear Div 8",
+ location=location.abovebar, color= color.yellow, size=size.tiny, transp=0, offset=-1) 
+
+///////////////////////////////////////////////////////////////////////////////////
+
+plotshape(show_piv ? ph : na, style=shape.labeldown, text="pH", textcolor=color.white, transp=85, 
+ location=location.abovebar, color= color.red, size=size.tiny, offset=-RB, title="Pivot High")
+plotshape(show_piv ? pl : na, style=shape.labelup,  text="pL", textcolor=color.white, transp=85, 
+ location=location.belowbar, color= color.green, size=size.tiny, offset=-RB, title="Pivot Low")
+ 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+// Bullish Divergences = close LL - RSI HL
+bl1 = 0 
+bl_1 = 0  
+bl2 = 0
+bl_2 = 0  
+bl3 = 0 
+bl_3 = 0
+bl4 = 0 
+bl_4 = 0 
+bl5 = 0 
+bl_5 = 0 
+bl6 = 0 
+bl_6 = 0 
+bl7 = 0 
+bl_7 = 0
+bl8 = 0 
+bl_8 = 0
+// Bearish Divergences = close HH - RSI LH
+br1 = 0 
+br_1 = 0
+br2 = 0
+br_2 = 0   
+br3 = 0
+br_3 = 0  
+br4 = 0
+br_4 = 0     
+br5 = 0 
+br_5 = 0
+br6 = 0 
+br_6 = 0 
+br7 = 0
+br_7 = 0  
+br8 = 0
+br_8 = 0 
+// Hidden Bullish Divergences = close HL - RSI LL
+hbl1 = 0
+hbl_1 = 0
+hbl2 = 0 
+hbl_2 = 0 
+hbl3 = 0 
+hbl_3 = 0     
+hbl4 = 0 
+hbl_4 = 0 
+hbl5 = 0 
+hbl_5 = 0    
+hbl6 = 0
+hbl_6 = 0
+hbl7 = 0 
+hbl_7 = 0
+hbl8 = 0 
+hbl_8 = 0
+// Hidden Bearish Divergences = close LH - RSI HH
+hbr1 = 0 
+hbr_1 = 0 
+hbr2 = 0
+hbr_2 = 0    
+hbr3 = 0 
+hbr_3 = 0   
+hbr4 = 0 
+hbr_4 = 0    
+hbr5 = 0 
+hbr_5 = 0
+hbr6 = 0 
+hbr_6 = 0 
+hbr7 = 0
+hbr_7 = 0
+hbr8 = 0
+hbr_8 = 0
+
+for i = 0 to 10                                                                
+    if div_bull_1 and nwl[i] == ll0                                                      
+        break    
+    bl_1 := bl_1 + 1 
+    if div_bull_2 and nwl[i] == ll0                                                      
+        break    
+    bl_2 := bl_2 + 1 
+    if div_bull_3 and nwl[i] == ll0                                                      
+        break    
+    bl_3 := bl_3 + 1 
+    if div_bull_4 and nwl[i] == ll0                                                      
+        break    
+    bl_4 := bl_4 + 1 
+    if div_bull_5 and nwl[i] == ll0                                                      
+        break    
+    bl_5 := bl_5 + 1 
+    if div_bull_6 and nwl[i] == ll0                                                      
+        break    
+    bl_6 := bl_6 + 1 
+    if div_bull_7 and nwl[i] == ll0                                                      
+        break    
+    bl_7 := bl_7 + 1 
+    if div_bull_8 and nwl[i] == ll0                                                      
+        break    
+    bl_8 := bl_8 + 1
+    if hid_div_bull_1 and nwl[i] == ll0                                                      
+        break    
+    hbl_1 := hbl_1 + 1 
+    if hid_div_bull_2 and nwl[i] == ll0                                                      
+        break    
+    hbl_2 := hbl_2 + 1 
+    if hid_div_bull_3 and nwl[i] == ll0                                                      
+        break    
+    hbl_3 := hbl_3 + 1 
+    if hid_div_bull_4 and nwl[i] == ll0                                                      
+        break    
+    hbl_4 := hbl_4 + 1 
+    if hid_div_bull_5 and nwl[i] == ll0                                                      
+        break    
+    hbl_5 := hbl_5 + 1 
+    if hid_div_bull_6 and nwl[i] == ll0                                                      
+        break    
+    hbl_6 := hbl_6 + 1 
+    if hid_div_bull_7 and nwl[i] == ll0                                                      
+        break    
+    hbl_7 := hbl_7 + 1 
+    if hid_div_bull_8 and nwl[i] == ll0                                                      
+        break    
+    hbl_8 := hbl_8 + 1
+
+for i = 0 to 3 
+    if div_bear_1 and nwh[i] == hh0                                                   
+        break    
+    br_1 := br_1 + 1 
+    if div_bear_2 and nwh[i] == hh0                                                     
+        break    
+    br_2 := br_2 + 1 
+    if div_bear_3 and nwh[i] == hh0                                                    
+        break    
+    br_3 := br_3 + 1 
+    if div_bear_4 and nwh[i] == hh0                                                    
+        break    
+    br_4 := br_4 + 1 
+    if div_bear_5 and nwh[i] == hh0                                                    
+        break    
+    br_5 := br_5 + 1 
+    if div_bear_6 and nwh[i] == hh0                                                    
+        break    
+    br_6 := br_6 + 1 
+    if div_bear_7 and nwh[i] == hh0                                                    
+        break    
+    br_7 := br_7 + 1 
+    if div_bear_8 and nwh[i] == hh0                                                    
+        break    
+    br_8 := br_8 + 1
+    if hid_div_bear_1 and nwh[i] == hh0                                                     
+        break    
+    hbr_1 := hbr_1 + 1
+    if hid_div_bear_2 and nwh[i] == hh0                                                       
+        break    
+    hbr_2 := hbr_2 + 1
+    if hid_div_bear_3 and nwh[i] == hh0                                                      
+        break    
+    hbr_3 := hbr_3 + 1 
+    if hid_div_bear_4 and nwh[i] == hh0                                                     
+        break    
+    hbr_4 := hbr_4 + 1 
+    if hid_div_bear_5 and nwh[i] == hh0                                                     
+        break    
+    hbr_5 := hbr_5 + 1
+    if hid_div_bear_6 and nwh[i] == hh0                                                     
+        break    
+    hbr_6 := hbr_6 + 1 
+    if hid_div_bear_7 and nwh[i] == hh0                                                     
+        break    
+    hbr_7 := hbr_7 + 1                                                               
+    if hid_div_bear_8 and nwh[i] == hh0                                                     
+        break    
+    hbr_8 := hbr_8 + 1
+
+for i = 0 to 50                                                                
+    if div_bull_1 and nwl[i] == ll1                                          
+        break    
+    bl1 := bl1 + 1 
+    if hid_div_bull_1 and nwl[i] == ll1                                          
+        break    
+    hbl1 := hbl1 + 1 
+
+for i = 0 to 100                                                                
+    if div_bull_2 and nwl[i] == ll2                                          
+        break    
+    bl2 := bl2 + 1
+    if hid_div_bull_2 and nwl[i] == ll2                                          
+        break    
+    hbl2 := hbl2 + 1 
+
+for i = 0 to 150                                                                
+    if div_bull_3 and nwl[i] == ll3                                          
+        break    
+    bl3 := bl3 + 1 
+    if hid_div_bull_3 and nwl[i] == ll3                                         
+        break    
+    hbl3 := hbl3 + 1
+ 
+for i = 0 to 200                                                                
+    if div_bull_4 and nwl[i] == ll4                                           
+        break    
+    bl4 := bl4 + 1 
+    if hid_div_bull_4 and nwl[i] == ll4                                         
+        break    
+    hbl4 := hbl4 + 1 
+
+for i = 0 to 200                                                                
+    if div_bull_5 and nwl[i] == ll5                                           
+        break    
+    bl5 := bl5 + 1 
+    if hid_div_bull_5 and nwl[i] == ll5                                         
+        break    
+    hbl5 := hbl5 + 1
+    
+for i = 0 to 300                                                               
+    if div_bull_6 and nwl[i] == ll6                                          
+        break    
+    bl6 := bl6 + 1 
+    if hid_div_bull_6 and nwl[i] == ll6                                        
+        break    
+    hbl6 := hbl6 + 1
+
+for i = 0 to 400                                                                
+    if div_bull_7 and nwl[i] == ll7                                           
+        break    
+    bl7 := bl7 + 1 
+    if hid_div_bull_7 and nwl[i] == ll7                                         
+        break    
+    hbl7 := hbl7 + 1 
+
+for i = 0 to 500                                                                
+    if div_bull_8 and nwl[i] == ll8                                           
+        break    
+    bl8 := bl8 + 1 
+    if hid_div_bull_8 and nwl[i] == ll8                                        
+        break    
+    hbl8 := hbl8 + 1                                                                
+
+for i = 0 to 50                                                                
+    if div_bear_1 and nwh[i] == hh1                                       
+        break    
+    br1 := br1 + 1 
+    if hid_div_bear_1 and nwh[i] == hh1                                         
+        break    
+    hbr1 := hbr1 + 1
+
+for i = 0 to 100                                                                
+    if div_bear_2 and nwh[i] == hh2                                        
+        break    
+    br2 := br2 + 1 
+    if hid_div_bear_2 and nwh[i] == hh2                                        
+        break    
+    hbr2 := hbr2 + 1
+
+for i = 0 to 150                                                                
+    if div_bear_3 and nwh[i] == hh3                                         
+        break    
+    br3 := br3 + 1 
+    if hid_div_bear_3 and nwh[i] == hh3                                        
+        break    
+    hbr3 := hbr3 + 1
+
+for i = 0 to 200                                                                
+    if div_bear_4 and nwh[i] == hh4                                         
+        break    
+    br4 := br4 + 1 
+    if hid_div_bear_4 and nwh[i] == hh4                                        
+        break    
+    hbr4 := hbr4 + 1 
+
+for i = 0 to 200                                                                
+    if div_bear_5 and nwh[i] == hh5                                         
+        break    
+    br5 := br5 + 1 
+    if hid_div_bear_5 and nwh[i] == hh5                                        
+        break    
+    hbr5 := hbr5 + 1 
+
+for i = 0 to 300                                                                
+    if div_bear_6 and nwh[i] == hh6                                        
+        break    
+    br6 := br6 + 1 
+    if hid_div_bear_6 and nwh[i] == hh6                                       
+        break    
+    hbr6 := hbr6 + 1
+
+for i = 0 to 400                                                               
+    if div_bear_7 and nwh[i] == hh7                                         
+        break    
+    br7 := br7 + 1 
+    if hid_div_bear_7 and nwh[i] == hh7                                      
+        break    
+    hbr7 := hbr7 + 1
+
+for i = 0 to 500                                                                
+    if div_bear_8 and nwh[i] == hh8                                         
+        break    
+    br8 := br8 + 1 
+    if hid_div_bear_8 and nwh[i] == hh8                                     
+        break    
+    hbr8 := hbr8 + 1
+
+if show_div and div_bull_1 and not div_bull_2 and not div_bull_3 and not div_bull_4 and not div_bull_5 
+ and not div_bull_6 and not div_bull_7 and not div_bull_8
+    line1 = line.new(bar_index[bl_1], nwl[bl_1], bar_index[bl1], nwl[bl1], xloc = 
+     xloc.bar_index, style=line.style_solid, extend=extend.none, color=color.green)
+    line.set_width(line1, lw)
+    line.delete(not pl ? line1 : na)
+if show_div and div_bull_2 and not div_bull_3 and not div_bull_4 and not div_bull_5 and not div_bull_6 
+ and not div_bull_7 and not div_bull_8
+    line1 = line.new(bar_index[bl_2], nwl[bl_2], bar_index[bl2], nwl[bl2], xloc = 
+     xloc.bar_index, style=line.style_solid, extend=extend.none, color=color.green)
+    line.set_width(line1, lw)
+    line.delete(not pl ? line1 : na)
+if show_div and div_bull_3 and not div_bull_4 and not div_bull_5 and not div_bull_6 and not div_bull_7 and not div_bull_8
+    line1 = line.new(bar_index[bl_3], nwl[bl_3], bar_index[bl3], nwl[bl3], xloc = 
+     xloc.bar_index, style=line.style_solid, extend=extend.none, color=color.green)
+    line.set_width(line1, lw)
+    line.delete(not pl ? line1 : na)
+if show_div and div_bull_4 and not div_bull_5 and not div_bull_6 and not div_bull_7 and not div_bull_8
+    line1 = line.new(bar_index[bl_4], nwl[bl_4], bar_index[bl4], nwl[bl4], xloc = 
+     xloc.bar_index, style=line.style_solid, extend=extend.none, color=color.lime)
+    line.set_width(line1, lw)
+    line.delete(not pl ? line1 : na)
+if show_div and div_bull_5 and not div_bull_6 and not div_bull_7 and not div_bull_8
+    line1 = line.new(bar_index[bl_5], nwl[bl_5], bar_index[bl5], nwl[bl5], xloc = 
+     xloc.bar_index, style=line.style_solid, extend=extend.none, color=color.lime)
+    line.set_width(line1, lw)
+    line.delete(not pl ? line1 : na)
+if show_div and div_bull_6 and not div_bull_7 and not div_bull_8
+    line1 = line.new(bar_index[bl_6], nwl[bl_6], bar_index[bl6], nwl[bl6], xloc = 
+     xloc.bar_index, style=line.style_solid, extend=extend.none, color=color.lime)
+    line.set_width(line1, lw)
+    line.delete(not pl ? line1 : na)
+if show_div and div_bull_7 and not div_bull_8
+    line1 = line.new(bar_index[bl_7], nwl[bl_7], bar_index[bl7], nwl[bl7], xloc = 
+     xloc.bar_index, style=line.style_solid, extend=extend.none, color=color.aqua)
+    line.set_width(line1, lw)
+    line.delete(not pl ? line1 : na)
+if show_div and div_bull_8
+    line1 = line.new(bar_index[bl_8], nwl[bl_8], bar_index[bl8], nwl[bl8], xloc = 
+     xloc.bar_index, style=line.style_solid, extend=extend.none, color=color.aqua)
+    line.set_width(line1, lw)
+    line.delete(not pl ? line1 : na)
+if show_div and div_bear_1 and not div_bear_2 and not div_bear_3 and not div_bear_4 
+ and not div_bear_5 and not div_bear_6 and not div_bear_7 and not div_bear_8
+    line1 = line.new(bar_index[br_1], nwh[br_1], bar_index[br1], nwh[br1], xloc = 
+     xloc.bar_index, style=line.style_solid, extend=extend.none, color=color.orange)
+    line.set_width(line1, lw)
+    line.delete(not ph ? line1 : na)
+if show_div and div_bear_2 and not div_bear_3 and not div_bear_4 and not div_bear_5 
+ and not div_bear_6 and not div_bear_7 and not div_bear_8
+    line1 = line.new(bar_index[br_2], nwh[br_2], bar_index[br2], nwh[br2], xloc = 
+     xloc.bar_index, style=line.style_solid, extend=extend.none, color=color.orange)
+    line.set_width(line1, lw)
+    line.delete(not ph ? line1 : na)
+if show_div and div_bear_3 and not div_bear_4 and not div_bear_5 and not div_bear_6 
+ and not div_bear_7 and not div_bear_8
+    line1 = line.new(bar_index[br_3], nwh[br_3], bar_index[br3], nwh[br3], xloc = 
+     xloc.bar_index, style=line.style_solid, extend=extend.none, color=color.orange)
+    line.set_width(line1, lw)
+    line.delete(not ph ? line1 : na)
+if show_div and div_bear_4 and not div_bear_5 and not div_bear_6 and not div_bear_7 
+ and not div_bear_8
+    line1 = line.new(bar_index[br_4], nwh[br_4], bar_index[br4], nwh[br4], xloc = 
+     xloc.bar_index, style=line.style_solid, extend=extend.none, color=color.red)
+    line.set_width(line1, lw)
+    line.delete(not ph ? line1 : na)     
+if show_div and div_bear_5 and not div_bear_6 and not div_bear_7 and not div_bear_8
+    line1 = line.new(bar_index[br_5], nwh[br_5], bar_index[br5], nwh[br5], xloc = 
+     xloc.bar_index, style=line.style_solid, extend=extend.none, color=color.red)
+    line.set_width(line1, lw)
+    line.delete(not ph ? line1 : na)    
+if show_div and div_bear_6 and not div_bear_7 and not div_bear_8
+    line1 = line.new(bar_index[br_6], nwh[br_6], bar_index[br6], nwh[br6], xloc = 
+     xloc.bar_index, style=line.style_solid, extend=extend.none, color=color.red)
+    line.set_width(line1, lw)
+    line.delete(not ph ? line1 : na)    
+if show_div and div_bear_7 and not div_bear_8
+    line1 = line.new(bar_index[br_7], nwh[br_7], bar_index[br7], nwh[br7], xloc = 
+     xloc.bar_index, style=line.style_solid, extend=extend.none, color=color.purple)
+    line.set_width(line1, lw)
+    line.delete(not ph ? line1 : na)
+if show_div and div_bear_8
+    line1 = line.new(bar_index[br_8], nwh[br_8], bar_index[br8], nwh[br8], xloc = 
+     xloc.bar_index, style=line.style_solid, extend=extend.none, color=color.purple)
+    line.set_width(line1, lw)
+    line.delete(not ph ? line1 : na) 
+if show_hiddiv and hid_div_bull_1 and not hid_div_bull_2 and not hid_div_bull_3 
+ and not hid_div_bull_4 and not hid_div_bull_5 and not hid_div_bull_6 
+ and not hid_div_bull_7 and not hid_div_bull_8 
+    line1 = line.new(bar_index[hbl_1], nwl[hbl_1], bar_index[hbl1], nwl[hbl1], xloc = 
+     xloc.bar_index, style=line.style_solid, extend=extend.none, color=color.white)
+    line.set_width(line1, lw)
+    line.delete(not pl ? line1 : na)
+if show_hiddiv and hid_div_bull_2 and not hid_div_bull_3 and not hid_div_bull_4 
+ and not hid_div_bull_5 and not hid_div_bull_6 and not hid_div_bull_7 
+ and not hid_div_bull_8 
+    line1 = line.new(bar_index[hbl_2], nwl[hbl_2], bar_index[hbl2], nwl[hbl2], xloc = 
+     xloc.bar_index, style=line.style_solid, extend=extend.none, color=color.white)
+    line.set_width(line1, lw)
+    line.delete(not pl ? line1 : na)
+if show_hiddiv and hid_div_bull_3 and not hid_div_bull_4 and not hid_div_bull_5 
+ and not hid_div_bull_6 and not hid_div_bull_7 and not hid_div_bull_8
+    line1 = line.new(bar_index[hbl_3], nwl[hbl_3], bar_index[hbl3], nwl[hbl3], xloc = 
+     xloc.bar_index, style=line.style_solid, extend=extend.none, color=color.white)
+    line.set_width(line1, lw)
+    line.delete(not pl ? line1 : na)
+if show_hiddiv and hid_div_bull_4 and not hid_div_bull_5 and not hid_div_bull_6 
+ and not hid_div_bull_7 and not hid_div_bull_8
+    line1 = line.new(bar_index[hbl_4], nwl[hbl_4], bar_index[hbl4], nwl[hbl4], xloc = 
+     xloc.bar_index, style=line.style_solid, extend=extend.none, color=color.white)
+    line.set_width(line1, lw)
+    line.delete(not pl ? line1 : na)
+if show_hiddiv and hid_div_bull_5 and not hid_div_bull_6 and not hid_div_bull_7 
+ and not hid_div_bull_8
+    line1 = line.new(bar_index[hbl_5], nwl[hbl_5], bar_index[hbl5], nwl[hbl5], xloc = 
+     xloc.bar_index, style=line.style_solid, extend=extend.none, color=color.white)
+    line.set_width(line1, lw)
+    line.delete(not pl ? line1 : na)
+if show_hiddiv and hid_div_bull_6 and not hid_div_bull_7 and not hid_div_bull_8
+    line1 = line.new(bar_index[hbl_6], nwl[hbl_6], bar_index[hbl6], nwl[hbl6], xloc = 
+     xloc.bar_index, style=line.style_solid, extend=extend.none, color=color.white)
+    line.set_width(line1, lw)
+    line.delete(not pl ? line1 : na)  
+if show_hiddiv and hid_div_bull_7 and not hid_div_bull_8
+    line1 = line.new(bar_index[hbl_7], nwl[hbl_7], bar_index[hbl7], nwl[hbl7], xloc = 
+     xloc.bar_index, style=line.style_solid, extend=extend.none, color=color.yellow)
+    line.set_width(line1, lw)
+    line.delete(not pl ? line1 : na)  
+if show_hiddiv and hid_div_bull_8
+    line1 = line.new(bar_index[hbl_8], nwl[hbl_8], bar_index[hbl8], nwl[hbl8], xloc = 
+     xloc.bar_index, style=line.style_solid, extend=extend.none, color=color.yellow)
+    line.set_width(line1, lw)
+    line.delete(not pl ? line1 : na)    
+if show_hiddiv and hid_div_bear_1 and not hid_div_bear_2 and not hid_div_bear_3 
+ and not hid_div_bear_4 and not hid_div_bear_5 and not hid_div_bear_6 
+ and not hid_div_bear_7 and not hid_div_bear_8
+    line1 = line.new(bar_index[hbr_1], nwh[hbr_1], bar_index[hbr1], nwh[hbr1], xloc = 
+     xloc.bar_index, style=line.style_solid, extend=extend.none, color=color.white)
+    line.set_width(line1, lw)
+    line.delete(not ph ? line1 : na)
+if show_hiddiv and hid_div_bear_2 and not hid_div_bear_3 and not hid_div_bear_4 
+ and not hid_div_bear_5 and not hid_div_bear_6 and not hid_div_bear_7 
+ and not hid_div_bear_8
+    line1 = line.new(bar_index[hbr_2], nwh[hbr_2], bar_index[hbr2], nwh[hbr2], xloc = 
+     xloc.bar_index, style=line.style_solid, extend=extend.none, color=color.white)
+    line.set_width(line1, lw)   
+    line.delete(not ph ? line1 : na)
+if show_hiddiv and hid_div_bear_3 and not hid_div_bear_4 and not hid_div_bear_5 
+ and not hid_div_bear_6 and not hid_div_bear_7 and not hid_div_bear_8
+    line1 = line.new(bar_index[hbr_3], nwh[hbr_3], bar_index[hbr3], nwh[hbr3], xloc = 
+     xloc.bar_index, style=line.style_solid, extend=extend.none, color=color.white)
+    line.set_width(line1, lw)
+    line.delete(not ph ? line1 : na)
+if show_hiddiv and hid_div_bear_4 and not hid_div_bear_5 and not hid_div_bear_6 
+ and not hid_div_bear_7 and not hid_div_bear_8
+    line1 = line.new(bar_index[hbr_4], nwh[hbr_4], bar_index[hbr4], nwh[hbr4], xloc = 
+     xloc.bar_index, style=line.style_solid, extend=extend.none, color=color.white)
+    line.set_width(line1, lw)    
+    line.delete(not ph ? line1 : na)
+if show_hiddiv and hid_div_bear_5 and not hid_div_bear_6 and not hid_div_bear_7 
+ and not hid_div_bear_8 
+    line1 = line.new(bar_index[hbr_5], nwh[hbr_5], bar_index[hbr5], nwh[hbr5], xloc = 
+     xloc.bar_index, style=line.style_solid, extend=extend.none, color=color.white)
+    line.set_width(line1, lw)    
+    line.delete(not ph ? line1 : na)
+if show_hiddiv and hid_div_bear_6 and not hid_div_bear_7 and not hid_div_bear_8
+    line1 = line.new(bar_index[hbr_6], nwh[hbr_6], bar_index[hbr6], nwh[hbr6], xloc = 
+     xloc.bar_index, style=line.style_solid, extend=extend.none, color=color.white)
+    line.set_width(line1, lw)    
+    line.delete(not ph ? line1 : na)  
+if show_hiddiv and hid_div_bear_7 and not hid_div_bear_8
+    line1 = line.new(bar_index[hbr_7], nwh[hbr_7], bar_index[hbr7], nwh[hbr7], xloc = 
+     xloc.bar_index, style=line.style_solid, extend=extend.none, color=color.yellow)
+    line.set_width(line1, lw)    
+    line.delete(not ph ? line1 : na)  
+if show_hiddiv and hid_div_bear_8 
+    line1 = line.new(bar_index[hbr_8], nwh[hbr_8], bar_index[hbr8], nwh[hbr8], xloc = 
+     xloc.bar_index, style=line.style_solid, extend=extend.none, color=color.yellow)
+    line.set_width(line1, lw)    
+    line.delete(not ph ? line1 : na)
