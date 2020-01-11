@@ -585,7 +585,7 @@ hbr_7 = 0
 hbr8 = 0
 hbr_8 = 0
 
-for i = 0 to 10                                                                
+for i = 0 to 1                                                                
     if div_bull_1 and nwl[i] == ll0                                                      
         break    
     bl_1 := bl_1 + 1 
@@ -635,7 +635,7 @@ for i = 0 to 10
         break    
     hbl_8 := hbl_8 + 1
 
-for i = 0 to 3 
+for i = 0 to 1 
     if div_bear_1 and nwh[i] == hh0                                                   
         break    
     br_1 := br_1 + 1 
