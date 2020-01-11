@@ -574,8 +574,7 @@ hbr_6 = 0
 hbrx = 0
 hbr_x = 0
 
-// Bullish Divergences = close LL - RSI HL
-for i = 0 to 50 
+for i = 0 to 1 
     if not arrows and Period and div_bull_1 and rsi[i] == rsil0 
         break
     bl_1 := bl_1 + 1
@@ -619,7 +618,7 @@ for i = 0 to 50
         break    
     hbl_x := hbl_x + 1
 
-for i = 0 to 50    
+for i = 0 to 1    
     if not arrows and Period and div_bear_1 and rsi[i] == rsih0                                                       
         break    
     br_1 := br_1 + 1 
